@@ -29,6 +29,7 @@ export const I = {
   ungroup: (p: P) => <Svg {...p}><rect x="2.5" y="2.5" width="7" height="7" rx="1.5" /><rect x="10.5" y="10.5" width="7" height="7" rx="1.5" strokeDasharray="2 2" /></Svg>,
   hole: (p: P) => <Svg {...p}><rect x="3" y="3" width="14" height="14" rx="2" strokeDasharray="2.5 2" /></Svg>,
   move: (p: P) => <Svg {...p}><path d="M10 2.5v15M2.5 10h15M10 2.5 8 4.5M10 2.5l2 2M10 17.5l-2-2M10 17.5l2-2M2.5 10l2-2M2.5 10l2 2M17.5 10l-2-2M17.5 10l-2 2" /></Svg>,
+  scale: (p: P) => <Svg {...p}><rect x="3" y="9" width="8" height="8" rx="1" /><path d="M10 10l7-7M12 3h5v5M3 6V3h3M17 14v3h-3" /></Svg>,
   rotate: (p: P) => <Svg {...p}><path d="M16 10a6 6 0 1 1-1.8-4.3" /><path d="M16.5 3v3.5H13" /></Svg>,
   size: (p: P) => <Svg {...p}><path d="M3 17 17 3M3 17v-4M3 17h4M17 3h-4M17 3v4" /></Svg>,
   delete: (p: P) => <Svg {...p}><path d="M4 5.5h12M8 5.5V3.5h4v2M5.5 5.5l.8 11h7.4l.8-11" /></Svg>,

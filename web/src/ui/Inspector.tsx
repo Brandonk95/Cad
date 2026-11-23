@@ -294,11 +294,25 @@ function Transform({ n }: { n: SceneNode }) {
   const update = useEditor((s) => s.updateNode)
   const rotate = useEditor((s) => s.rotateSelected)
   const drop = useEditor((s) => s.dropSelected)
+  const scale = useEditor((s) => s.scaleSelected)
+  // Re-mount the % field after each change so it reads 100 again.
+  const cursor = useEditor((s) => s.cursor)
   return (
     <>
       <div className="section">
         <h4>Position</h4>
         <Vec v={n.position} onChange={(position) => update(n.id, { position }, 'Move', 'move')} />
+      </div>
+      <div className="section">
+        <h4>Scale</h4>
+        <div className="dims two">
+          <Num key={cursor} label="All" unit="%" value={100} onChange={(v) => v > 0 && v !== 100 && scale([v / 100, v / 100, v / 100])} />
+          <div className="row">
+            <button className="btn small" onClick={() => scale([0.5, 0.5, 0.5])} title="Half size">½×</button>
+            <button className="btn small" onClick={() => scale([2, 2, 2])} title="Double size">2×</button>
+          </div>
+        </div>
+        <p className="note">Scales the whole part and keeps it on the bed. Screw holes and magnet pockets keep their hardware size. Press S for scale handles.</p>
       </div>
       <div className="section">
         <h4>Rotation</h4>

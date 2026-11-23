@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ALL_TEMPLATES, FALLBACK_MATERIALS, PRINTER_PRESETS, uid } from '../model/catalog'
-import { combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, ungroup, round } from '../model/ops'
+import { combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round } from '../model/ops'
 import { nodeWorldBox } from '../model/geometry'
 import { DEFAULT_CLEARANCES, type Clearances, type Material, type PrintContext, type PrinterProfile, type SceneNode, type ShapeKind, type ShapeNode, type Vec3 } from '../model/types'
 import type { Calibration } from '../lib/pb'
@@ -38,7 +38,7 @@ interface EditorState {
   theme: Theme
   overlay: boolean
   shelfOpen: boolean
-  transformMode: 'translate' | 'rotate'
+  transformMode: 'translate' | 'rotate' | 'scale'
   orientFor: string | null
   dialog: null | 'printer' | 'calibrate' | 'shortcuts'
   reducedMotion: boolean
@@ -69,6 +69,8 @@ interface EditorState {
   toggleHole: () => void
   dropSelected: () => void
   rotateSelected: (axis: 'x' | 'y' | 'z', deg: number) => void
+  /** Scale the selection by per-axis factors along each part's own axes (1 = unchanged). */
+  scaleSelected: (f: Vec3) => void
   nudge: (dx: number, dy: number, dz: number) => void
   applyFix: (fix: Fix) => void
 
@@ -76,7 +78,7 @@ interface EditorState {
   setTheme: (t: Theme) => void
   toggleOverlay: () => void
   setShelfOpen: (b: boolean) => void
-  setTransformMode: (m: 'translate' | 'rotate') => void
+  setTransformMode: (m: 'translate' | 'rotate' | 'scale') => void
   setOrientFor: (id: string | null) => void
   setDialog: (d: EditorState['dialog']) => void
   setReducedMotion: (b: boolean) => void
@@ -247,6 +249,14 @@ export const useEditor = create<EditorState>((set, get) => {
       let nodes = get().nodes
       for (const id of sel) nodes = mapNodes(nodes, id, (n) => rotateWorld(n, axis, deg))
       commitWith(`Rotate ${deg}° ${axis.toUpperCase()}`, 'rotate', nodes)
+    },
+    scaleSelected: (f) => {
+      const sel = topLevel()
+      if (!sel.length || f.some((v) => !(v > 0))) return
+      let nodes = get().nodes
+      for (const id of sel) nodes = mapNodes(nodes, id, (n) => scaleNode(n, f, clr()))
+      const pct = (v: number) => `${Math.round(v * 100)}%`
+      commitWith(f[0] === f[1] && f[1] === f[2] ? `Scale ${pct(f[0])}` : 'Scale', 'size', nodes)
     },
     nudge: (dx, dy, dz) => {
       const sel = topLevel()

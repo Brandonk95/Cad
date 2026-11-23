@@ -310,7 +310,7 @@ const KEYS: [string, string][] = [
   ['X M N', 'Screw hole, magnet pocket, pin and hole'],
   ['H', 'Switch solid / hole'],
   ['G / Shift+G', 'Combine / ungroup'],
-  ['V / R', 'Move / rotate handles'],
+  ['V / R / S', 'Move / rotate / scale handles'],
   ['Arrows, PgUp, PgDn', 'Nudge 1 mm (Shift: 10 mm)'],
   ['Alt while dragging', 'Move freely, no snapping to other parts'],
   ['D', 'Drop to bed'],

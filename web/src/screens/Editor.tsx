@@ -65,6 +65,7 @@ function useShortcuts() {
       if (k === 'd') return s.dropSelected()
       if (k === 'v') return s.setTransformMode('translate')
       if (k === 'r') return s.setTransformMode('rotate')
+      if (k === 's') return s.setTransformMode('scale')
       if (KEY_TO_KIND[k]) return s.add(KEY_TO_KIND[k])
     }
     window.addEventListener('keydown', onKey)
@@ -173,6 +174,7 @@ export function Editor({ id }: { id: string }) {
         <div className="view-tools" role="toolbar" aria-label="View">
           <button className="btn ghost icon" aria-pressed={tm === 'translate'} onClick={() => setTm('translate')} title="Move handles (V)" style={tm === 'translate' ? { color: 'var(--accent)' } : undefined}><I.move /></button>
           <button className="btn ghost icon" aria-pressed={tm === 'rotate'} onClick={() => setTm('rotate')} title="Rotate handles (R)" style={tm === 'rotate' ? { color: 'var(--accent)' } : undefined}><I.rotate /></button>
+          <button className="btn ghost icon" aria-pressed={tm === 'scale'} onClick={() => setTm('scale')} title="Scale handles (S)" style={tm === 'scale' ? { color: 'var(--accent)' } : undefined}><I.scale /></button>
           <button className="btn ghost icon" onClick={frameSelection} title="Frame (F)"><I.frame /></button>
         </div>
         {projectId === id && nodes.length === 0 && (

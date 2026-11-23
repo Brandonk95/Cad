@@ -11,7 +11,7 @@ This is the **MVP loop in Block mode**: set up the printer, calibrate fits, mode
 | Printer profiles | Presets (Bambu, Prusa, Creality, Voron, resin) or custom. Badge in the top bar; switching re-checks the model. |
 | Materials | PLA, PETG, TPU, ABS/ASA, resin seeded with overhang limit, bridge span, min perimeters, density, price. |
 | Fit calibration | 10 minute coupon (one 5 mm peg, eight holes in 0.05 mm steps, counted by dimples). Pick Press / Snug / Slide, saved per printer + material. |
-| Block mode | Box, cylinder, sphere, cone, wedge. Solid / hole, Combine (union then cut), ungroup, duplicate, move / rotate handles with smart snapping (drag up or down near a top face to land on it, align edges and centers; Alt for free move), size tags on canvas, undo history strip. |
+| Block mode | Box, cylinder, sphere, cone, wedge. Solid / hole, Combine (union then cut), ungroup, duplicate, move / rotate / scale handles (S; scale by % in the inspector, hardware keeps its size) with smart snapping (drag up or down near a top face to land on it, align edges and centers; Alt for free move), size tags on canvas, undo history strip. |
 | Shape details | Hollow shells (wall, floor, closed / open top / tube), rounded box corners, chamfered or rounded edges, flat-sided cylinders and cones (3 to 12 sides), domes, pin lead-in chamfer. Built in real mm, cut with CSG and cached. |
 | Print primitives | Screw hole M2 to M8 (clearance, tapped, heat-set insert, captive nut), magnet pocket, pin with matching hole. |
 | Fit classes | Any hole gets Press / Snug / Slide / Loose. Clearance comes from calibration, never typed. |

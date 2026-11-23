@@ -213,6 +213,14 @@ function Gizmo({ id }: { id: string }) {
 
   const sync = () => {
     lastGizmo = Date.now()
+    if (mode === 'scale') {
+      // The mesh stretches live; the model is rebuilt once on release. Show the factor meanwhile.
+      const f = obj.scale.toArray().map((v) => Math.round(v * 100))
+      const label = f[0] === f[1] && f[1] === f[2] ? `${f[0]}%` : `W ${f[0]}%  D ${f[1]}%  H ${f[2]}%`
+      const box = new THREE.Box3().setFromObject(obj)
+      useSnapGuides.setState({ segs: [], label, at: [(box.min.x + box.max.x) / 2, (box.min.y + box.max.y) / 2, box.max.z] })
+      return
+    }
     if (mode === 'translate') snap()
     const s = useEditor.getState()
     const p = obj.position
@@ -233,6 +241,7 @@ function Gizmo({ id }: { id: string }) {
       size={0.8}
       translationSnap={1}
       rotationSnap={15 * DEG}
+      scaleSnap={0.05}
       onObjectChange={sync}
       onMouseDown={begin}
       onMouseUp={() => {
@@ -240,6 +249,12 @@ function Gizmo({ id }: { id: string }) {
         drag.current = null
         clearSnapGuides()
         const s = useEditor.getState()
+        if (mode === 'scale') {
+          const f = obj.scale.toArray().map((v) => Math.max(0.01, round(v, 3))) as Vec3
+          obj.scale.set(1, 1, 1)
+          if (f.some((v) => Math.abs(v - 1) > 1e-6)) s.scaleSelected(f)
+          return
+        }
         s.commit(mode === 'rotate' ? 'Rotate' : 'Move', mode === 'rotate' ? 'rotate' : 'move', s.nodes)
       }}
     />

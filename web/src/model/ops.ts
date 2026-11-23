@@ -125,6 +125,8 @@ const alignedAxis = (rotation: Vec3, axis: number) => {
 const scaleInto = (n: SceneNode, axis: number, f: number): SceneNode => {
   const local = alignedAxis(n.rotation, axis)
   if (n.type === 'shape') {
+    // Screw holes and magnet pockets keep their diameter; only depth follows.
+    if (HARDWARE.has(n.kind) && local < 2) return n
     const size = [...n.size] as Vec3
     size[local] = round(Math.max(0.05, size[local] * f), 3)
     return { ...n, size }
@@ -145,6 +147,39 @@ export function resizeWorld(n: SceneNode, axis: 0 | 1 | 2, len: number, clr: Cle
   const cur = before.max.getComponent(axis) - before.min.getComponent(axis)
   if (cur <= 1e-6 || len <= 0) return n
   const scaled = scaleInto(n, axis, len / cur)
+  const after = solidWorldBox(scaled, clr)
+  const dz = before.min.z - after.min.z
+  return { ...scaled, position: [scaled.position[0], scaled.position[1], round(scaled.position[2] + dz)] }
+}
+
+/** Hardware pockets keep their diameter when a part is scaled; only their depth follows. */
+const HARDWARE = new Set(['screwHole', 'magnetPocket'])
+
+/** Scale a node by factors along its own local axes. */
+function scaleLocalAxes(n: SceneNode, f: Vec3): SceneNode {
+  if (n.type === 'shape') {
+    const keep = HARDWARE.has(n.kind)
+    const size = n.size.map((v, i) => (keep && i < 2 ? v : round(Math.max(0.05, v * f[i]), 3))) as Vec3
+    return { ...n, size }
+  }
+  return {
+    ...n,
+    children: n.children.map((c) => {
+      let out: SceneNode = { ...c, position: c.position.map((v, i) => round(v * f[i], 4)) as Vec3 }
+      // Children may be rotated: map each group axis onto the child's closest local axis.
+      for (const a of [0, 1, 2]) if (Math.abs(f[a] - 1) > 1e-9) out = scaleInto(out, a, f[a])
+      return out
+    }),
+  }
+}
+
+/**
+ * Scale a top-level node by factors along its local axes (1 = unchanged), about its center,
+ * keeping its bottom where it was so it doesn't sink into or lift off the bed.
+ */
+export function scaleNode(n: SceneNode, f: Vec3, clr: Clearances): SceneNode {
+  const before = solidWorldBox(n, clr)
+  const scaled = scaleLocalAxes(n, f)
   const after = solidWorldBox(scaled, clr)
   const dz = before.min.z - after.min.z
   return { ...scaled, position: [scaled.position[0], scaled.position[1], round(scaled.position[2] + dz)] }
