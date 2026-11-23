@@ -26,6 +26,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/stratum
+          # Only master moves `latest` (what Watchtower pulls). Version tags must not,
+          # or an older tag build finishing last would roll servers back.
+          flavor: |
+            latest=false
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}

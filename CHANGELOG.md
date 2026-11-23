@@ -4,6 +4,10 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.2.2 — 2026-11-23
+
+- Auto-updates always install the newest release, never an older one
+
 ## 0.2.1 — 2026-11-23
 
 - Update notices save your open part before reloading
