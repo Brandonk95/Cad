@@ -437,3 +437,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .dim.scrub input:not(:focus) { cursor: ew-resize; }
 .dim.scrub:hover:not(:focus-within) { border-color: var(--text-secondary); }
 .dim.dragging, .dim.dragging input { cursor: ew-resize; border-color: var(--accent); user-select: none; }
+
+/* Align (multi-selection) */
+.align-row { display: grid; grid-template-columns: 84px 1fr; align-items: center; gap: 8px; margin-top: 6px; }
+.align-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }

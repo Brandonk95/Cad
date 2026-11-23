@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ALL_TEMPLATES, FALLBACK_MATERIALS, PRINTER_PRESETS, uid } from '../model/catalog'
 import { combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round } from '../model/ops'
-import { nodeWorldBox } from '../model/geometry'
+import { nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { DEFAULT_CLEARANCES, type Clearances, type Material, type PrintContext, type PrinterProfile, type SceneNode, type ShapeKind, type ShapeNode, type Vec3 } from '../model/types'
 import type { Calibration } from '../lib/pb'
 import type { Fix } from '../print/analyze'
@@ -83,6 +83,8 @@ interface EditorState {
   /** Scale the selection by per-axis factors along each part's own axes (1 = unchanged). */
   scaleSelected: (f: Vec3) => void
   nudge: (dx: number, dy: number, dz: number) => void
+  /** Line the selected parts up along world axes against the selection's overall bounds. */
+  alignSelected: (axes: (0 | 1 | 2)[], to: 'min' | 'center' | 'max') => void
   applyFix: (fix: Fix) => void
 
   setMode: (m: Mode) => void
@@ -279,6 +281,30 @@ export const useEditor = create<EditorState>((set, get) => {
       for (const id of sel)
         nodes = mapNodes(nodes, id, (n) => ({ ...n, position: [round(n.position[0] + dx), round(n.position[1] + dy), round(n.position[2] + dz)] }))
       commitWith('Move', 'move', nodes)
+    },
+    alignSelected: (axes, to) => {
+      const sel = topLevel()
+      if (sel.length < 2) return get().toast('Select two or more parts to align. Shift-click adds to the selection.', 'info')
+      const boxes = new Map(sel.map((id) => [id, solidWorldBox(findNode(get().nodes, id)!, clr())]))
+      const all = new THREE.Box3()
+      for (const b of boxes.values()) all.union(b)
+      const k = ['x', 'y', 'z'] as const
+      let nodes = get().nodes
+      for (const id of sel) {
+        const b = boxes.get(id)!
+        const d = [0, 0, 0]
+        for (const a of axes) {
+          const key = k[a]
+          d[a] = to === 'min' ? all.min[key] - b.min[key] : to === 'max' ? all.max[key] - b.max[key] : (all.min[key] + all.max[key]) / 2 - (b.min[key] + b.max[key]) / 2
+        }
+        nodes = mapNodes(nodes, id, (n) => ({ ...n, position: [round(n.position[0] + d[0]), round(n.position[1] + d[1]), round(n.position[2] + d[2])] }))
+      }
+      const names = [
+        { min: 'left', center: 'center', max: 'right' },
+        { min: 'front', center: 'middle', max: 'back' },
+        { min: 'bottom', center: 'middle', max: 'top' },
+      ]
+      commitWith(axes.length > 1 ? 'Center on each other' : `Align ${names[axes[0]][to]}`, 'move', nodes)
     },
 
     applyFix: (fix) => {

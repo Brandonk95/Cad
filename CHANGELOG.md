@@ -4,6 +4,11 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.9.0 — 2026-11-23
+
+- Align parts. Select two or more and use the Align buttons in the inspector to line them up left, center or right, front, middle or back, and bottom, middle or top.
+- "Center on each other" centers the parts left to right and front to back in one click
+
 ## 0.8.2 — 2026-11-23
 
 - Combining parts keeps them exactly where they were. Before, the combined part could jump sideways or up, and a rotated part could turn again.

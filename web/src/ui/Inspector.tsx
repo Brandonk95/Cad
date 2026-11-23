@@ -403,6 +403,38 @@ function ColorPicker({ n }: { n: SceneNode }) {
   )
 }
 
+const ALIGN_ROWS: { axis: 0 | 1 | 2; title: string; labels: [string, string, string] }[] = [
+  { axis: 0, title: 'Left to right', labels: ['Left', 'Center', 'Right'] },
+  { axis: 1, title: 'Front to back', labels: ['Front', 'Middle', 'Back'] },
+  { axis: 2, title: 'Up and down', labels: ['Bottom', 'Middle', 'Top'] },
+]
+
+/** Tinkercad-style align: line parts up against the selection's overall bounds. */
+function AlignSection() {
+  const align = useEditor((s) => s.alignSelected)
+  const to = ['min', 'center', 'max'] as const
+  return (
+    <div className="section" data-tour="align">
+      <h4>Align</h4>
+      {ALIGN_ROWS.map((r) => (
+        <div key={r.axis} className="align-row">
+          <span className="align-label">{r.title}</span>
+          <div className="seg" role="group" aria-label={`Align ${r.title.toLowerCase()}`}>
+            {r.labels.map((l, i) => (
+              <button key={l} onClick={() => align([r.axis], to[i])} title={`Line up the ${to[i] === 'center' ? 'centers' : l.toLowerCase() + ' sides'} of the selected parts`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button className="btn" style={{ width: '100%', marginTop: 8 }} onClick={() => align([0, 1], 'center')} title="Center the parts on each other, left to right and front to back">
+        Center on each other
+      </button>
+    </div>
+  )
+}
+
 export function Inspector() {
   const selection = useEditor((s) => s.selection)
   const nodes = useEditor((s) => s.nodes)
@@ -426,6 +458,7 @@ export function Inspector() {
               <button className="btn" onClick={dup}><I.duplicate size={16} /> Duplicate</button>
               <button className="btn danger" onClick={remove} aria-label="Delete"><I.delete size={16} /></button>
             </div>
+            <AlignSection />
           </>
         )}
         {n && (
