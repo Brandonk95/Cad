@@ -158,9 +158,11 @@ evaluator.useGroups = false
 
 const csgCache = new Map<string, THREE.BufferGeometry>()
 
+// The placement is baked into the geometry so every brush shares the group's frame.
+// three-bvh-csg returns its result in the first brush's local frame, so a brush
+// with its own position or rotation would shift (or re-rotate) the combined part.
 const brushFrom = (g: THREE.BufferGeometry, m: THREE.Matrix4) => {
-  const b = new Brush(g)
-  m.decompose(b.position, b.quaternion, b.scale)
+  const b = new Brush(g.clone().applyMatrix4(m))
   b.updateMatrixWorld()
   return b
 }

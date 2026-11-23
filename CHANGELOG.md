@@ -4,6 +4,10 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.8.2 — 2026-11-23
+
+- Combining parts keeps them exactly where they were. Before, the combined part could jump sideways or up, and a rotated part could turn again.
+
 ## 0.8.1 — 2026-11-23
 
 - Size tags on small parts no longer pile on top of each other. They spread apart so you can read and drag each one.
