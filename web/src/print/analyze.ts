@@ -265,7 +265,21 @@ export function analyze(nodes: SceneNode[], bodies: Body[], ctx: PrintContext): 
     }
 
     // Bed contact
-    if (box.min.z > 0.01) {
+    // Resting on another part (e.g. snapped on top): slicers place separate parts on the
+    // plate one by one, so it has to be joined to print where it is.
+    const under = box.min.z > 0.01 ? bodies.find((o) => {
+      if (o === body) return false
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox()
+      const ob = o.geometry.boundingBox!
+      return Math.abs(ob.max.z - box.min.z) < 0.05 && Math.min(ob.max.x, box.max.x) > Math.max(ob.min.x, box.min.x) && Math.min(ob.max.y, box.max.y) > Math.max(ob.min.y, box.min.y)
+    }) : undefined
+    if (under) {
+      issues.push({
+        id: `float-${body.id}`, kind: 'floating', nodeId: body.id,
+        message: `${body.name} sits on ${under.name} but isn't joined to it. Combine them so they print as one part.`,
+        fixes: [{ label: `Combine with ${under.name}`, fix: { type: 'combine', ids: [under.id, body.id] } }, { label: 'Drop to bed', fix: { type: 'drop', nodeId: body.id } }],
+      })
+    } else if (box.min.z > 0.01) {
       issues.push({ id: `float-${body.id}`, kind: 'floating', nodeId: body.id, message: `${body.name} floats ${fmt(box.min.z)} mm above the bed.`, fixes: [{ label: 'Drop to bed', fix: { type: 'drop', nodeId: body.id } }] })
     } else if (box.min.z < -0.01) {
       issues.push({ id: `sink-${body.id}`, kind: 'floating', nodeId: body.id, message: `${body.name} sits ${fmt(-box.min.z)} mm below the bed. That part won't print.`, fixes: [{ label: 'Raise to bed', fix: { type: 'drop', nodeId: body.id } }] })

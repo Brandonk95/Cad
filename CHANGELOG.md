@@ -4,6 +4,13 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.4.0 — 2026-11-23
+
+- Smarter snapping: drag a part over another and it lands on top; drag it off and it drops back to the bed
+- Edges and centers line up with nearby parts, and dragging up or down snaps to tops, bottoms and the bed
+- Print check spots a part sitting on another and offers to combine them
+- Hold Alt while dragging to move freely
+
 ## 0.3.1 — 2026-11-23
 
 - Sketch and Pro modes now say "Coming soon" when you hover them

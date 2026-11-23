@@ -312,6 +312,7 @@ const KEYS: [string, string][] = [
   ['G / Shift+G', 'Combine / ungroup'],
   ['V / R', 'Move / rotate handles'],
   ['Arrows, PgUp, PgDn', 'Nudge 1 mm (Shift: 10 mm)'],
+  ['Alt while dragging', 'Move freely, no snapping to other parts'],
   ['D', 'Drop to bed'],
   ['Ctrl+D', 'Duplicate'],
   ['Delete', 'Delete selection'],

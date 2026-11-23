@@ -3,7 +3,8 @@ import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Edges, Html, Line, OrbitControls, TransformControls } from '@react-three/drei'
 import { buildShapeGeometries, groupGeometry, nodeWorldBox } from '../model/geometry'
-import { mapNodes, round } from '../model/ops'
+import { findNode, mapNodes, round } from '../model/ops'
+import { clearSnapGuides, freeMove, isResting, snapMove, useSnapGuides, type SnapTarget } from './snap'
 import type { Clearances, SceneNode, Vec3 } from '../model/types'
 import { contextOf, useEditor, usePrintContext } from '../store/editor'
 import { useAnalysis } from '../store/analysis'
@@ -163,17 +164,58 @@ function Overlay({ c }: { c: ThemeColors }) {
 
 // ---------------------------------------------------------------------------
 
+interface DragStart {
+  pos: THREE.Vector3
+  box: THREE.Box3
+  targets: SnapTarget[]
+  solid: boolean
+  resting: boolean
+}
+
 function Gizmo({ id }: { id: string }) {
   const scene = useThree((s) => s.scene)
+  const camera = useThree((s) => s.camera)
   const mode = useEditor((s) => s.transformMode)
   const [obj, setObj] = useState<THREE.Object3D | null>(null)
+  const ctrl = useRef<{ axis: string | null } | null>(null)
+  const drag = useRef<DragStart | null>(null)
   useEffect(() => {
     const raf = requestAnimationFrame(() => setObj(scene.getObjectByName(id) ?? null))
     return () => cancelAnimationFrame(raf)
   }, [id, scene])
   if (!obj) return null
+
+  const begin = () => {
+    lastGizmo = Date.now()
+    drag.current = null
+    if (mode !== 'translate') return
+    const s = useEditor.getState()
+    const node = findNode(s.nodes, id)
+    if (!node) return
+    const clr = contextOf(s).clearances
+    const box = nodeWorldBox(node, clr)
+    const targets: SnapTarget[] = s.nodes
+      .filter((n) => n.id !== id)
+      .map((n) => ({ box: nodeWorldBox(n, clr), name: n.name, solid: n.type === 'group' || !n.hole }))
+    drag.current = { pos: obj.position.clone(), box, targets, solid: node.type === 'group' || !node.hole, resting: isResting(box, targets) }
+  }
+
+  const snap = () => {
+    const d = drag.current
+    const axis = ctrl.current?.axis
+    if (!d || !axis || freeMove()) return clearSnapGuides()
+    const moved = obj.position.clone().sub(d.pos)
+    const box = d.box.clone().translate(moved)
+    // Snap distance grows as you zoom out, so it feels the same on screen.
+    const tol = THREE.MathUtils.clamp(camera.position.distanceTo(obj.position) * 0.012, 1, 6)
+    const r = snapMove(box, d.targets, { axis, solid: d.solid, restingAtStart: d.resting, tol })
+    obj.position.add(r.delta)
+    useSnapGuides.setState({ segs: r.segs, label: r.label, at: r.at })
+  }
+
   const sync = () => {
     lastGizmo = Date.now()
+    if (mode === 'translate') snap()
     const s = useEditor.getState()
     const p = obj.position
     const r = obj.rotation
@@ -187,19 +229,38 @@ function Gizmo({ id }: { id: string }) {
   }
   return (
     <TransformControls
+      ref={ctrl as never}
       object={obj}
       mode={mode}
       size={0.8}
       translationSnap={1}
       rotationSnap={15 * DEG}
       onObjectChange={sync}
-      onMouseDown={() => (lastGizmo = Date.now())}
+      onMouseDown={begin}
       onMouseUp={() => {
         lastGizmo = Date.now()
+        drag.current = null
+        clearSnapGuides()
         const s = useEditor.getState()
         s.commit(mode === 'rotate' ? 'Rotate' : 'Move', mode === 'rotate' ? 'rotate' : 'move', s.nodes)
       }}
     />
+  )
+}
+
+function SnapGuides({ c }: { c: ThemeColors }) {
+  const segs = useSnapGuides((s) => s.segs)
+  const label = useSnapGuides((s) => s.label)
+  const at = useSnapGuides((s) => s.at)
+  return (
+    <group>
+      {segs.length > 0 && <Line points={segs.flat()} segments color={c.accent} lineWidth={2} depthTest={false} renderOrder={20} />}
+      {label && at && (
+        <Html position={at} center zIndexRange={[12, 0]} style={{ pointerEvents: 'none' }}>
+          <div className="snap-label">{label}</div>
+        </Html>
+      )}
+    </group>
   )
 }
 
@@ -301,6 +362,7 @@ export function Viewport() {
       ))}
       {overlay && <Overlay c={c} />}
       {single && <Gizmo id={single} />}
+      <SnapGuides c={c} />
       {single && <SizeTags id={single} />}
       {single && <FitTag id={single} />}
       <OrbitControls makeDefault enableDamping dampingFactor={0.12} target={[0, 0, 10]} maxPolarAngle={Math.PI * 0.95} />

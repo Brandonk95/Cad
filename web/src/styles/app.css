@@ -415,3 +415,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tour-invite .text { flex: 1; min-width: 220px; }
 .tour-invite b { display: block; font-size: 15px; font-weight: 600; }
 .tour-invite .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Snap label shown while dragging ("On Box", "Flush with Box") */
+.snap-label {
+  transform: translateY(-22px); padding: 2px 8px; border-radius: var(--radius-tag);
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  color: var(--accent); background: var(--bg-raised); border: 1px solid var(--accent);
+}
