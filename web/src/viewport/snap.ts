@@ -4,11 +4,8 @@ import { create } from 'zustand'
 /**
  * Smart snapping while dragging with the move gizmo.
  *
- * - Stacking: a solid that was sitting on something (the bed or another part)
- *   and is dragged sideways over another solid lands on its top face, and drops
- *   back down when dragged off it.
- * - Height: dragging up/down snaps the bottom to the bed or another part's top,
- *   and the top flush with another part's top or bottom.
+ * - Height: dragging up/down near another part's top face snaps onto it (and to
+ *   the bed, or flush with a top or bottom). Dragging sideways never changes height.
  * - Alignment: left / center / right (and front / center / back) line up with
  *   nearby parts.
  * Hold Alt while dragging to move freely on the 1 mm grid.
@@ -39,29 +36,10 @@ if (typeof window !== 'undefined') {
 }
 export const freeMove = () => altHeld
 
-const EPS = 0.05
-
 const overlapArea = (a: THREE.Box3, b: THREE.Box3) => {
   const w = Math.min(a.max.x, b.max.x) - Math.max(a.min.x, b.min.x)
   const d = Math.min(a.max.y, b.max.y) - Math.max(a.min.y, b.min.y)
   return w > 0 && d > 0 ? w * d : 0
-}
-const footArea = (b: THREE.Box3) => (b.max.x - b.min.x) * (b.max.y - b.min.y)
-
-/** Clearly over the target: a real share of either footprint overlaps, or our center is above it. */
-const isOver = (a: THREE.Box3, t: THREE.Box3) => {
-  const ov = overlapArea(a, t)
-  if (!ov) return false
-  if (ov >= 0.25 * Math.min(footArea(a), footArea(t))) return true
-  const cx = (a.min.x + a.max.x) / 2
-  const cy = (a.min.y + a.max.y) / 2
-  return cx > t.min.x && cx < t.max.x && cy > t.min.y && cy < t.max.y
-}
-
-/** Is a part with this box resting on the bed or on top of another solid? */
-export function isResting(box: THREE.Box3, targets: SnapTarget[]) {
-  if (Math.abs(box.min.z) < EPS) return true
-  return targets.some((t) => t.solid && Math.abs(box.min.z - t.box.max.z) < EPS && overlapArea(box, t.box) > 0)
 }
 
 const topOutline = (b: THREE.Box3): Seg[] => {
@@ -78,8 +56,6 @@ const topOutline = (b: THREE.Box3): Seg[] => {
 interface Opts {
   /** gizmo axis being dragged: X, Y, Z, XY, YZ, XZ or XYZ */
   axis: string
-  solid: boolean
-  restingAtStart: boolean
   /** snap distance in mm (scaled with zoom) */
   tol: number
 }
@@ -116,26 +92,7 @@ export function snapMove(box: THREE.Box3, targets: SnapTarget[], o: Opts) {
     segs.push(k === 'x' ? [[best.v, lo, z], [best.v, hi, z]] : [[lo, best.v, z], [hi, best.v, z]])
   }
 
-  if (!o.axis.includes('Z')) {
-    // Sideways drag: a resting solid sits on whatever it's over.
-    if (o.solid && o.restingAtStart) {
-      let top = 0
-      let on: SnapTarget | null = null
-      for (const t of others) {
-        if (!t.solid || !isOver(b, t.box)) continue
-        if (t.box.max.z > top) {
-          top = t.box.max.z
-          on = t
-        }
-      }
-      delta.z = top - b.min.z
-      b.translate(new THREE.Vector3(0, 0, delta.z))
-      if (on) {
-        segs.push(...topOutline(on.box))
-        label = `On ${on.name}`
-      }
-    }
-  } else {
+  if (o.axis.includes('Z')) {
     // Up / down: bottom to the bed or a top face; top flush with a top or bottom.
     let best: { d: number; t: SnapTarget | null; what: string } | null = null
     const consider = (d: number, t: SnapTarget | null, what: string) => {
@@ -143,7 +100,8 @@ export function snapMove(box: THREE.Box3, targets: SnapTarget[], o: Opts) {
     }
     consider(0 - b.min.z, null, 'On the bed')
     for (const t of others) {
-      if (!overlapArea(b, t.box)) continue
+      // Only parts you are above or below, and only real material (not holes).
+      if (!t.solid || !overlapArea(b, t.box)) continue
       consider(t.box.max.z - b.min.z, t, `On ${t.name}`)
       consider(t.box.max.z - b.max.z, t, `Flush with ${t.name}`)
       consider(t.box.min.z - b.min.z, t, `Level with ${t.name}`)
