@@ -206,6 +206,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   animation: tag-in var(--t-panel) var(--ease);
 }
 .size-tag:hover { border-color: var(--accent); }
+.size-tag.scrub { cursor: ew-resize; touch-action: none; user-select: none; }
+.size-tag.dragging { border-color: var(--accent); background: var(--accent-soft); }
 .size-tag .unit { font-family: var(--font-ui); }
 .size-tag input { width: 56px; border: 0; background: transparent; font: inherit; padding: 0; outline: none; color: var(--text-primary); }
 @keyframes tag-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; } }

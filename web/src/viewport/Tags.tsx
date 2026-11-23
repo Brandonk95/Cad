@@ -1,24 +1,70 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Html } from '@react-three/drei'
 import { nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { mapNodes, resizeWorld } from '../model/ops'
 import { FIT_CLASSES, type FitClass, type Vec3 } from '../model/types'
-import { useEditor, usePrintContext } from '../store/editor'
+import { beginScrub, endScrub, useEditor, usePrintContext } from '../store/editor'
 
 const fmt = (v: number) => (Math.round(v * 100) / 100).toString()
 
+const PX_PER_STEP = 4
+
 function Tag({ position, value, axis, onCommit }: { position: Vec3; value: number; axis: string; onCommit: (v: number) => void }) {
   const [edit, setEdit] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const latest = useRef({ value, onCommit })
+  latest.current = { value, onCommit }
+
+  // Drag the pill (right / up = bigger) to resize. A click without moving edits as text.
+  const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    ;(document.activeElement as HTMLElement | null)?.blur?.()
+    const el = e.currentTarget
+    el.setPointerCapture(e.pointerId)
+    const sx = e.clientX
+    const sy = e.clientY
+    const start = latest.current.value
+    let moved = false
+    let last = start
+    const move = (ev: PointerEvent) => {
+      const d = ev.clientX - sx - (ev.clientY - sy)
+      if (!moved && Math.abs(d) < 3) return
+      if (!moved) {
+        moved = true
+        setDragging(true)
+        beginScrub()
+      }
+      const k = ev.shiftKey ? 10 : ev.altKey ? 0.1 : 1
+      const v = Math.max(0.1, Math.round((start + Math.round(d / PX_PER_STEP) * k) * 1000) / 1000)
+      if (v !== last) {
+        last = v
+        latest.current.onCommit(v)
+      }
+    }
+    const up = () => {
+      el.removeEventListener('pointermove', move)
+      el.removeEventListener('pointerup', up)
+      el.removeEventListener('pointercancel', up)
+      if (moved) {
+        endScrub()
+        setDragging(false)
+      } else setEdit(fmt(latest.current.value))
+    }
+    el.addEventListener('pointermove', move)
+    el.addEventListener('pointerup', up)
+    el.addEventListener('pointercancel', up)
+  }
+
   return (
     <Html position={position} center zIndexRange={[20, 0]}>
       {edit === null ? (
         <button
-          className="size-tag"
-          title={`${axis} size. Click to edit`}
-          onClick={(e) => {
-            e.stopPropagation()
-            setEdit(fmt(value))
-          }}
+          className={`size-tag scrub${dragging ? ' dragging' : ''}`}
+          title={`${axis} size. Drag to change (Shift: faster, Alt: finer), click to type`}
+          onPointerDown={onPointerDown}
+          onClick={(e) => e.stopPropagation()}
         >
           {fmt(value)}
           <span className="unit">mm</span>

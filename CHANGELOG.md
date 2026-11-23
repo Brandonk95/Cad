@@ -4,6 +4,11 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.8.0 — 2026-11-23
+
+- Drag the size tags on the 3D view to resize a part. Drag right or up to grow it. Shift goes faster, Alt finer, and a click still lets you type.
+- A whole tag drag is one undo step, and the part stays on the bed
+
 ## 0.7.0 — 2026-11-23
 
 - Drag left or right on any number in the inspector to change it. Shift goes faster, Alt finer, and a click still lets you type.
