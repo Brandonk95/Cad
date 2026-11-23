@@ -4,6 +4,10 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.5.1 — 2026-11-23
+
+- The view no longer jumps when the inspector opens or closes. It slides over the model instead.
+
 ## 0.5.0 — 2026-11-23
 
 - Hollow any box, cylinder, cone, sphere or wedge with your own wall and floor thickness
