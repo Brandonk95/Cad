@@ -1,0 +1,62 @@
+# Stratum on CasaOS.
+#
+# Build and start on the CasaOS host (over SSH, from this folder):
+#   docker compose up -d --build
+# It shows up in the CasaOS dashboard because of the x-casaos blocks below.
+# Using a prebuilt image instead? See casaos/docker-compose.yml.
+
+name: stratum
+
+services:
+  stratum:
+    build: .
+    image: stratum:local
+    container_name: stratum
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      TZ: ${TZ:-UTC}
+      # PocketBase admin dashboard at /_/ . Change these before first start.
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@stratum.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-change-this-password}
+    volumes:
+      - /DATA/AppData/stratum/pb_data:/pb/pb_data
+    x-casaos:
+      envs:
+        - container: TZ
+          description:
+            en_us: Time zone
+        - container: PB_ADMIN_EMAIL
+          description:
+            en_us: PocketBase admin email (dashboard at /_/)
+        - container: PB_ADMIN_PASSWORD
+          description:
+            en_us: PocketBase admin password, at least 10 characters
+      ports:
+        - container: "8090"
+          description:
+            en_us: Web UI and API
+      volumes:
+        - container: /pb/pb_data
+          description:
+            en_us: Database, projects and uploaded thumbnails
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: stratum
+  author: Stratum
+  developer: Stratum
+  category: Utilities
+  icon: https://raw.githubusercontent.com/YOUR_GITHUB_USER/Cad/main/assets/icon.svg
+  tagline:
+    en_us: CAD that knows your printer.
+  title:
+    en_us: Stratum
+  description:
+    en_us: Browser-based CAD for 3D printing. Fits, holes and walls are checked against your printer and calibration as you model.
+  index: /
+  port_map: "8090"
+  scheme: http

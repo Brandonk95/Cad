@@ -1,0 +1,6 @@
+**/node_modules
+web/dist
+pocketbase/pb_data
+.git
+*.md
+!CHANGELOG.md

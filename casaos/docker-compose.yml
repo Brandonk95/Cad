@@ -1,0 +1,95 @@
+# Stratum for CasaOS, using a prebuilt image.
+#
+# In CasaOS: App Store > Custom Install > Import, paste this file.
+# Replace YOUR_GITHUB_USER with the account that publishes the image
+# (the GitHub Actions workflow in .github/workflows builds it on every push to main).
+#
+# Auto-update: the watchtower service checks GHCR every 5 minutes and restarts
+# Stratum on a new image. It only touches containers labeled for the stratum
+# scope, so it leaves your other CasaOS apps alone. Open browser tabs then show
+# a "new version" notice with what changed.
+
+name: stratum
+
+services:
+  stratum:
+    image: ghcr.io/YOUR_GITHUB_USER/stratum:latest
+    container_name: stratum
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      TZ: ${TZ:-UTC}
+      # PocketBase admin dashboard at /_/ . Change these before first start.
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@stratum.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-change-this-password}
+    volumes:
+      - /DATA/AppData/stratum/pb_data:/pb/pb_data
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.scope: stratum
+    x-casaos:
+      envs:
+        - container: TZ
+          description:
+            en_us: Time zone
+        - container: PB_ADMIN_EMAIL
+          description:
+            en_us: PocketBase admin email (dashboard at /_/)
+        - container: PB_ADMIN_PASSWORD
+          description:
+            en_us: PocketBase admin password, at least 10 characters
+      ports:
+        - container: "8090"
+          description:
+            en_us: Web UI and API
+      volumes:
+        - container: /pb/pb_data
+          description:
+            en_us: Database, projects and uploaded thumbnails
+
+  watchtower:
+    # Maintained fork; the original containrrr/watchtower stopped at 2023 and
+    # can't talk to Docker 29+.
+    image: nickfedor/watchtower:1.24.1
+    container_name: stratum-watchtower
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-UTC}
+      WATCHTOWER_POLL_INTERVAL: "300"
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_SCOPE: stratum
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_RESTARTING: "true"
+    labels:
+      com.centurylinklabs.watchtower.scope: stratum
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    x-casaos:
+      envs:
+        - container: WATCHTOWER_POLL_INTERVAL
+          description:
+            en_us: Seconds between update checks
+      volumes:
+        - container: /var/run/docker.sock
+          description:
+            en_us: Docker socket, used to pull and restart Stratum
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: stratum
+  author: Stratum
+  developer: Stratum
+  category: Utilities
+  icon: https://raw.githubusercontent.com/YOUR_GITHUB_USER/Cad/main/assets/icon.svg
+  tagline:
+    en_us: CAD that knows your printer.
+  title:
+    en_us: Stratum
+  description:
+    en_us: Browser-based CAD for 3D printing. Fits, holes and walls are checked against your printer and calibration as you model.
+  index: /
+  port_map: "8090"
+  scheme: http
