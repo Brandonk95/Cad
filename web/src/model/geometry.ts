@@ -238,3 +238,22 @@ export function nodeWorldBox(n: SceneNode, clr: Clearances, parent = new THREE.M
   }
   return box
 }
+
+/**
+ * World box of what actually prints for a top-level node. For a combined group this is
+ * the cut result, so a hole poking out of the bottom or top doesn't count as material.
+ * Standalone shapes (solid or hole) use their own box.
+ */
+export function solidWorldBox(n: SceneNode, clr: Clearances): THREE.Box3 {
+  if (n.type === 'group') {
+    const g = groupGeometry(n, clr)
+    if (g) {
+      const w = g.clone().applyMatrix4(matrixOf(n))
+      w.computeBoundingBox()
+      const box = w.boundingBox!.clone()
+      w.dispose()
+      if (!box.isEmpty()) return box
+    }
+  }
+  return nodeWorldBox(n, clr)
+}

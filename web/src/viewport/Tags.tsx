@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Html } from '@react-three/drei'
-import { nodeWorldBox } from '../model/geometry'
+import { nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { mapNodes, resizeWorld } from '../model/ops'
 import { FIT_CLASSES, type FitClass, type Vec3 } from '../model/types'
 import { useEditor, usePrintContext } from '../store/editor'
@@ -55,7 +55,7 @@ function Tag({ position, value, axis, onCommit }: { position: Vec3; value: numbe
 export function SizeTags({ id }: { id: string }) {
   const node = useEditor((s) => s.nodes.find((n) => n.id === id))
   const ctx = usePrintContext()
-  const box = useMemo(() => (node ? nodeWorldBox(node, ctx.clearances) : null), [node, ctx.clearances])
+  const box = useMemo(() => (node ? solidWorldBox(node, ctx.clearances) : null), [node, ctx.clearances])
   if (!node || !box || box.isEmpty()) return null
   const { min, max } = box
   const commit = (axis: 0 | 1 | 2) => (v: number) => {

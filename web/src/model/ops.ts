@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { matrixOf, nodeWorldBox } from './geometry'
+import { matrixOf, nodeWorldBox, solidWorldBox } from './geometry'
 import type { Clearances, GroupNode, SceneNode, Vec3 } from './types'
 import { uid } from './catalog'
 
@@ -79,9 +79,9 @@ export const cloneWithNewIds = (n: SceneNode): SceneNode =>
     ? { ...n, id: uid(), children: n.children.map(cloneWithNewIds) }
     : { ...n, id: uid(), params: { ...n.params } }
 
-/** Moves a top-level node so its lowest point sits on the bed. */
+/** Moves a top-level node so its lowest printed point sits on the bed (holes sticking out don't count). */
 export function dropToBed(n: SceneNode, clr: Clearances): SceneNode {
-  const box = nodeWorldBox(n, clr)
+  const box = solidWorldBox(n, clr)
   const dz = -box.min.z
   if (Math.abs(dz) < 1e-6) return n
   return { ...n, position: [n.position[0], n.position[1], round(n.position[2] + dz)] }
@@ -141,11 +141,11 @@ const scaleInto = (n: SceneNode, axis: number, f: number): SceneNode => {
 
 /** Resize a top-level node so its world extent along `axis` becomes `len`. Bottom stays put. */
 export function resizeWorld(n: SceneNode, axis: 0 | 1 | 2, len: number, clr: Clearances): SceneNode {
-  const before = nodeWorldBox(n, clr)
+  const before = solidWorldBox(n, clr)
   const cur = before.max.getComponent(axis) - before.min.getComponent(axis)
   if (cur <= 1e-6 || len <= 0) return n
   const scaled = scaleInto(n, axis, len / cur)
-  const after = nodeWorldBox(scaled, clr)
+  const after = solidWorldBox(scaled, clr)
   const dz = before.min.z - after.min.z
   return { ...scaled, position: [scaled.position[0], scaled.position[1], round(scaled.position[2] + dz)] }
 }

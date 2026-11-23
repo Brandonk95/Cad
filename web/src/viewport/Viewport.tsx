@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Edges, Html, Line, OrbitControls, TransformControls } from '@react-three/drei'
-import { buildShapeGeometries, groupGeometry, nodeWorldBox } from '../model/geometry'
+import { buildShapeGeometries, groupGeometry, nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { findNode, mapNodes, round } from '../model/ops'
 import { clearSnapGuides, freeMove, isResting, snapMove, useSnapGuides, type SnapTarget } from './snap'
 import type { Clearances, SceneNode, Vec3 } from '../model/types'
@@ -193,10 +193,10 @@ function Gizmo({ id }: { id: string }) {
     const node = findNode(s.nodes, id)
     if (!node) return
     const clr = contextOf(s).clearances
-    const box = nodeWorldBox(node, clr)
+    const box = solidWorldBox(node, clr)
     const targets: SnapTarget[] = s.nodes
       .filter((n) => n.id !== id)
-      .map((n) => ({ box: nodeWorldBox(n, clr), name: n.name, solid: n.type === 'group' || !n.hole }))
+      .map((n) => ({ box: solidWorldBox(n, clr), name: n.name, solid: n.type === 'group' || !n.hole }))
     drag.current = { pos: obj.position.clone(), box, targets, solid: node.type === 'group' || !node.hole, resting: isResting(box, targets) }
   }
 
