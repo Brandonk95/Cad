@@ -68,7 +68,16 @@ export function TopBar({ saveState }: { saveState: string }) {
         {MODES.map((m) => {
           const Icon = I[m.icon]
           return (
-            <button key={m.id} aria-pressed={mode === m.id} disabled={!m.ready} onClick={() => setMode(m.id)} title={m.ready ? `${m.label} mode` : `${m.label} mode is coming in the next phase`}>
+            <button
+              key={m.id}
+              className={m.ready ? undefined : 'soon'}
+              aria-pressed={mode === m.id}
+              aria-disabled={!m.ready || undefined}
+              aria-label={m.ready ? undefined : `${m.label} mode, coming soon`}
+              data-soon={m.ready ? undefined : 'Coming soon'}
+              onClick={() => m.ready && setMode(m.id)}
+              title={m.ready ? `${m.label} mode` : undefined}
+            >
               <Icon size={16} />
               <span className="hide-sm">{m.label}</span>
             </button>

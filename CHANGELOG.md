@@ -4,6 +4,10 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.3.1 — 2026-11-23
+
+- Sketch and Pro modes now say "Coming soon" when you hover them
+
 ## 0.3.0 — 2026-11-23
 
 - New guided tour: builds your first part with you in nine short steps

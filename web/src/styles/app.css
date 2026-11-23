@@ -140,6 +140,22 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .mode-switch button[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .mode-switch button:disabled { cursor: default; opacity: 0.5; }
 
+/* Features that aren't built yet: dimmed, still hoverable, with a "Coming soon" tip. */
+.soon { position: relative; cursor: not-allowed !important; }
+.soon > * { opacity: 0.5; }
+.soon::after {
+  content: attr(data-soon);
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translate(-50%, -2px);
+  padding: 4px 8px; border-radius: var(--radius-tag); white-space: nowrap;
+  font-size: 12px; font-weight: 600; line-height: 1.4;
+  color: var(--text-primary); background: var(--bg-raised);
+  border: 1px solid var(--border); box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  opacity: 0; pointer-events: none; z-index: 60;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.soon:hover::after, .soon:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .soon::after { transition: none; } }
+
 .printer-badge {
   display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 8px;
   border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-raised); cursor: pointer;
