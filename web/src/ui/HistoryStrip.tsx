@@ -18,7 +18,7 @@ export function HistoryStrip() {
   }, [cursor, history.length])
 
   return (
-    <footer className="history" ref={ref} aria-label="History">
+    <footer className="history" data-tour="history" ref={ref} aria-label="History">
       <button className="btn ghost icon" onClick={undo} disabled={cursor === 0} title="Undo (Ctrl+Z)" aria-label="Undo">
         <I.undo />
       </button>

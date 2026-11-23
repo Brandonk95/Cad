@@ -20,6 +20,7 @@ This is the **MVP loop in Block mode**: set up the printer, calibrate fits, mode
 | Estimates | Time, grams, cost. Labeled as estimates. |
 | Output | 3MF (per-part objects, colors) and STL. Selected-part export. |
 | Storage | PocketBase: users, printers, materials, calibrations, projects (model JSON + thumbnail). Autosave. Per-user access rules. |
+| Guided tour | Optional for new users: a practice part with coach marks for printer, box, exact sizes, screw hole, combine, print check, fit calibration and export. Waits for you, or "Do it for me". Replay from Keyboard shortcuts (`?`). |
 | UI | Design language tokens (dark default, light theme), Inter + JetBrains Mono self-hosted, 1.5 px icons with the layered-line motif on print primitives, single-key shortcuts (press `?`), reduced motion. |
 
 Sketch and Pro modes are visible in the mode switch but disabled until the next phase.

@@ -23,7 +23,7 @@ export function PrintPanel() {
   const est = analysis?.estimate
 
   return (
-    <section className="print-panel" aria-label="Print check">
+    <section className="print-panel" data-tour="print-panel" aria-label="Print check">
       <header>
         <span className="title">
           Print check

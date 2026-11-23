@@ -13,6 +13,8 @@ import { CalibrationWizard, OrientationDialog, PrinterDialog, ShortcutsDialog } 
 import { I } from '../ui/Icons'
 import { Viewport, captureThumbnail, frameSelection } from '../viewport/Viewport'
 import { ALL_TEMPLATES } from '../model/catalog'
+import { TourOverlay } from '../tour/TourOverlay'
+import { useTour } from '../tour/tour'
 
 const KEY_TO_KIND = Object.fromEntries(ALL_TEMPLATES.map((t) => [t.key.toLowerCase(), t.kind]))
 
@@ -140,6 +142,7 @@ export function Editor({ id }: { id: string }) {
         if (p.material && s.materials.some((x) => x.id === p.material)) s.setMaterialId(p.material)
         useEditor.setState({ dirty: 0 })
         setTimeout(frameSelection, 400)
+        if (useTour.getState().pending) setTimeout(() => useTour.getState().start(), 600)
       })
       .catch(() => alive && setError("This project doesn't exist or isn't yours."))
     return () => {
@@ -165,7 +168,7 @@ export function Editor({ id }: { id: string }) {
     <div className="shell">
       <TopBar saveState={saveState} />
       <ToolShelf />
-      <main className="canvas">
+      <main className="canvas" data-tour="canvas">
         {projectId === id && <Viewport />}
         <div className="view-tools" role="toolbar" aria-label="View">
           <button className="btn ghost icon" aria-pressed={tm === 'translate'} onClick={() => setTm('translate')} title="Move handles (V)" style={tm === 'translate' ? { color: 'var(--accent)' } : undefined}><I.move /></button>
@@ -186,6 +189,7 @@ export function Editor({ id }: { id: string }) {
       {dialog === 'calibrate' && <CalibrationWizard />}
       {dialog === 'shortcuts' && <ShortcutsDialog />}
       {orientFor && <OrientationDialog />}
+      <TourOverlay />
     </div>
   )
 }

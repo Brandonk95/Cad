@@ -5,6 +5,7 @@ import { useEditor, usePrintContext } from '../store/editor'
 import { I } from '../ui/Icons'
 import { Wordmark } from '../ui/Logo'
 import { PrinterDialog, CalibrationWizard } from '../ui/Dialogs'
+import { setTourStatus, startTour, tourStatus } from '../tour/tour'
 
 const ago = (iso: string) => {
   const s = (Date.now() - new Date(iso.replace(' ', 'T')).getTime()) / 1000
@@ -17,6 +18,7 @@ const ago = (iso: string) => {
 export function Home({ onSignOut }: { onSignOut: () => void }) {
   const [projects, setProjects] = useState<ProjectRecord[] | null>(null)
   const [err, setErr] = useState('')
+  const [inviteHidden, setInviteHidden] = useState(() => tourStatus() !== null)
   const ctx = usePrintContext()
   const printers = useEditor((s) => s.printers)
   const dialog = useEditor((s) => s.dialog)
@@ -53,6 +55,7 @@ export function Home({ onSignOut }: { onSignOut: () => void }) {
           {printers.length > 0 && <span className="sub">{ctx.material.name}</span>}
         </button>
         <button className="btn ghost icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">{theme === 'dark' ? <I.sun /> : <I.moon />}</button>
+        <button className="btn ghost hide-sm" onClick={startTour} title="A short guided tour in a practice part">Take the tour</button>
         <button className="btn ghost" onClick={() => { pb.authStore.clear(); onSignOut() }}><I.logout size={16} /> Sign out</button>
       </div>
       <div className="page-body">
@@ -66,6 +69,19 @@ export function Home({ onSignOut }: { onSignOut: () => void }) {
           {printers.length > 0 && !ctx.calibrated && <> <button className="btn small" onClick={() => setDialog('calibrate')}>Calibrate fits</button></>}
         </p>
         {err && <p style={{ color: 'var(--print-thin)' }}>{err}</p>}
+        {!inviteHidden && projects !== null && projects.length === 0 && printers.length > 0 && (
+          <div className="tour-invite" role="region" aria-label="Tour">
+            <div className="text">
+              <b>New to Stratum?</b>
+              <span className="muted">A 3 minute tour builds your first part with you: a box, a screw hole, a print check and an export.</span>
+            </div>
+            <div className="actions">
+              <button className="btn primary" onClick={startTour}>Start the tour</button>
+              <button className="btn" onClick={() => setInviteHidden(true)}>Not now</button>
+              <button className="btn ghost" onClick={() => { setTourStatus('off'); setInviteHidden(true) }}>Don't ask again</button>
+            </div>
+          </div>
+        )}
         <div className="cards">
           <button className="card new" onClick={create}>
             <I.plus />

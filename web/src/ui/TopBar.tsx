@@ -76,7 +76,7 @@ export function TopBar({ saveState }: { saveState: string }) {
         })}
       </div>
       <div className="spacer" />
-      <button className="printer-badge" onClick={() => setDialog('printer')} title="Printer and material. Switching re-checks the whole model.">
+      <button className="printer-badge" data-tour="printer" onClick={() => setDialog('printer')} title="Printer and material. Switching re-checks the whole model.">
         <span className={`dot${ctx.calibrated ? '' : ' uncal'}`} />
         <span>{ctx.printer.name}</span>
         <span className="sub hide-sm">
@@ -94,7 +94,7 @@ export function TopBar({ saveState }: { saveState: string }) {
         <I.share size={16} /> Share
       </button>
       <div className="menu-wrap" ref={menuRef}>
-        <button className="btn primary" onClick={() => setMenu(!menu)} aria-expanded={menu}>
+        <button className="btn primary" data-tour="send" onClick={() => setMenu(!menu)} aria-expanded={menu}>
           <I.send size={16} /> Send to slicer
         </button>
         {menu && (

@@ -16,7 +16,7 @@ export function ToolShelf() {
       {SHAPES.map((t) => {
         const Icon = I[t.kind as 'box']
         return (
-          <button key={t.kind} className="tool" onClick={() => add(t.kind)} title={`${t.label} (${t.key})`}>
+          <button key={t.kind} className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} title={`${t.label} (${t.key})`}>
             <Icon />
             <span className="label">{t.label}</span>
             <kbd>{t.key}</kbd>
@@ -27,7 +27,7 @@ export function ToolShelf() {
       {PRINT_PRIMITIVES.map((t) => {
         const Icon = I[t.kind as 'screwHole']
         return (
-          <button key={t.kind} className="tool" onClick={() => add(t.kind)} title={`${t.label} (${t.key})`}>
+          <button key={t.kind} className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} title={`${t.label} (${t.key})`}>
             <Icon />
             <span className="label">{t.label}</span>
             <kbd>{t.key}</kbd>

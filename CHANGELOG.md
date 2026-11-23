@@ -4,6 +4,11 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.3.0 — 2026-11-23
+
+- New guided tour: builds your first part with you in nine short steps
+- Offered once on the projects page, and you can replay it any time from Keyboard shortcuts (?)
+
 ## 0.2.3 — 2026-11-23
 
 - The version number now shows in the bottom-right corner

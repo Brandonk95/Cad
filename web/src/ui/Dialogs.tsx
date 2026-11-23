@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { CURRENT_VERSION, noticesEnabled, setNoticesEnabled } from '../lib/updates'
+import { startTour } from '../tour/tour'
 import { PRINTER_PRESETS } from '../model/catalog'
 import { worldBodies } from '../model/geometry'
 import { findNode } from '../model/ops'
@@ -347,7 +348,10 @@ export function ShortcutsDialog() {
         }} />
         Tell me when a new version is ready
       </label>
-      <p className="note" style={{ margin: 0 }}>Stratum <span className="mono">{CURRENT_VERSION}</span></p>
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <span className="note">Stratum <span className="mono">{CURRENT_VERSION}</span></span>
+        <button className="btn small" onClick={startTour}>Take the tour</button>
+      </div>
     </Sheet>
   )
 }
