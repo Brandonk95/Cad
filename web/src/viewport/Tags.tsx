@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Html } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import { nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { mapNodes, resizeWorld } from '../model/ops'
 import { FIT_CLASSES, type FitClass, type Vec3 } from '../model/types'
@@ -9,7 +11,7 @@ const fmt = (v: number) => (Math.round(v * 100) / 100).toString()
 
 const PX_PER_STEP = 4
 
-function Tag({ position, value, axis, onCommit }: { position: Vec3; value: number; axis: string; onCommit: (v: number) => void }) {
+function Tag({ position, value, axis, onCommit, boxRef }: { position: Vec3; value: number; axis: string; onCommit: (v: number) => void; boxRef?: (el: HTMLDivElement | null) => void }) {
   const [edit, setEdit] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const latest = useRef({ value, onCommit })
@@ -59,6 +61,7 @@ function Tag({ position, value, axis, onCommit }: { position: Vec3; value: numbe
 
   return (
     <Html position={position} center zIndexRange={[20, 0]}>
+      <div ref={boxRef} className="size-tag-wrap">
       {edit === null ? (
         <button
           className={`size-tag scrub${dragging ? ' dragging' : ''}`}
@@ -93,8 +96,62 @@ function Tag({ position, value, axis, onCommit }: { position: Vec3; value: numbe
           <span className="unit">mm</span>
         </span>
       )}
+      </div>
     </Html>
   )
+}
+
+const GAP = 4
+const v3 = new THREE.Vector3()
+
+/**
+ * Pushes tags apart on screen so they never cover each other, however small the
+ * part is or wherever the camera is. Works on screen pixels, every frame.
+ */
+function useSpreadTags(anchors: Vec3[], els: React.RefObject<(HTMLDivElement | null)[]>) {
+  useFrame(({ camera, size }) => {
+    const list = els.current
+    const pts = anchors.map((a, i) => {
+      v3.set(a[0], a[1], a[2]).project(camera)
+      const el = list[i]
+      return {
+        el,
+        x: ((v3.x + 1) / 2) * size.width,
+        y: ((1 - v3.y) / 2) * size.height,
+        w: el?.offsetWidth ?? 0,
+        h: el?.offsetHeight ?? 0,
+        dx: 0,
+        dy: 0,
+      }
+    })
+    for (let it = 0; it < 12; it++) {
+      let moved = false
+      for (let i = 0; i < pts.length; i++)
+        for (let j = i + 1; j < pts.length; j++) {
+          const a = pts[i]
+          const b = pts[j]
+          if (!a.el || !b.el) continue
+          const cx = b.x + b.dx - (a.x + a.dx)
+          const cy = b.y + b.dy - (a.y + a.dy)
+          const ox = (a.w + b.w) / 2 + GAP - Math.abs(cx)
+          const oy = (a.h + b.h) / 2 + GAP - Math.abs(cy)
+          if (ox <= 0 || oy <= 0) continue
+          moved = true
+          // Separate along the cheaper direction, half each.
+          if (oy <= ox) {
+            const sy = (cy === 0 ? (j > i ? 1 : -1) : Math.sign(cy)) * (oy / 2)
+            a.dy -= sy
+            b.dy += sy
+          } else {
+            const sx = (cx === 0 ? 1 : Math.sign(cx)) * (ox / 2)
+            a.dx -= sx
+            b.dx += sx
+          }
+        }
+      if (!moved) break
+    }
+    for (const p of pts) if (p.el) p.el.style.transform = p.dx || p.dy ? `translate(${p.dx.toFixed(1)}px, ${p.dy.toFixed(1)}px)` : ''
+  })
 }
 
 /** Width, depth and height pills on the selection's bounding box. */
@@ -102,18 +159,31 @@ export function SizeTags({ id }: { id: string }) {
   const node = useEditor((s) => s.nodes.find((n) => n.id === id))
   const ctx = usePrintContext()
   const box = useMemo(() => (node ? solidWorldBox(node, ctx.clearances) : null), [node, ctx.clearances])
+  const els = useRef<(HTMLDivElement | null)[]>([null, null, null])
+  const off = 6
+  const anchors: Vec3[] = useMemo(() => {
+    if (!box || box.isEmpty()) return []
+    const { min, max } = box
+    return [
+      [(min.x + max.x) / 2, min.y - off, min.z],
+      [max.x + off, (min.y + max.y) / 2, min.z],
+      [max.x + off, min.y - off, (min.z + max.z) / 2],
+    ]
+  }, [box])
+  useSpreadTags(anchors, els)
   if (!node || !box || box.isEmpty()) return null
   const { min, max } = box
   const commit = (axis: 0 | 1 | 2) => (v: number) => {
     const s = useEditor.getState()
     s.commit('Resize', 'size', mapNodes(s.nodes, id, (n) => resizeWorld(n, axis, v, ctx.clearances)))
   }
-  const off = 6
+  const sizes = [max.x - min.x, max.y - min.y, max.z - min.z]
+  const names = ['Width', 'Depth', 'Height']
   return (
     <group>
-      <Tag axis="Width" position={[(min.x + max.x) / 2, min.y - off, min.z]} value={max.x - min.x} onCommit={commit(0)} />
-      <Tag axis="Depth" position={[max.x + off, (min.y + max.y) / 2, min.z]} value={max.y - min.y} onCommit={commit(1)} />
-      <Tag axis="Height" position={[max.x + off, min.y - off, (min.z + max.z) / 2]} value={max.z - min.z} onCommit={commit(2)} />
+      {anchors.map((a, i) => (
+        <Tag key={names[i]} axis={names[i]} position={a} value={sizes[i]} onCommit={commit(i as 0 | 1 | 2)} boxRef={(el) => (els.current[i] = el)} />
+      ))}
     </group>
   )
 }

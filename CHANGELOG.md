@@ -4,6 +4,10 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.8.1 — 2026-11-23
+
+- Size tags on small parts no longer pile on top of each other. They spread apart so you can read and drag each one.
+
 ## 0.8.0 — 2026-11-23
 
 - Drag the size tags on the 3D view to resize a part. Drag right or up to grow it. Shift goes faster, Alt finer, and a click still lets you type.
