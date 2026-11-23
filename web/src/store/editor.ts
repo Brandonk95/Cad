@@ -8,6 +8,17 @@ import { DEFAULT_CLEARANCES, type Clearances, type Material, type PrintContext, 
 import type { Calibration } from '../lib/pb'
 import type { Fix } from '../print/analyze'
 
+/** Drag-to-change on number fields: the whole drag becomes one undo step. */
+const scrub = { active: false, started: false }
+export const beginScrub = () => {
+  scrub.active = true
+  scrub.started = false
+}
+export const endScrub = () => {
+  scrub.active = false
+  scrub.started = false
+}
+
 export type HistoryIcon = ShapeKind | 'group' | 'ungroup' | 'move' | 'rotate' | 'size' | 'delete' | 'fix' | 'start' | 'hole' | 'color' | 'duplicate' | 'orient'
 
 export interface HistoryEntry {
@@ -114,7 +125,10 @@ const GUEST_PRINTER: PrinterProfile = { id: 'guest', ...PRINTER_PRESETS[0] }
 export const useEditor = create<EditorState>((set, get) => {
   const commitWith = (label: string, icon: HistoryIcon, nodes: SceneNode[], selection?: string[]) => {
     const { history, cursor } = get()
-    const next = history.slice(0, cursor + 1).concat({ label, icon, nodes })
+    // While a value is being dragged, every change after the first replaces that one step.
+    const merge = scrub.active && scrub.started && cursor > 0
+    if (scrub.active) scrub.started = true
+    const next = history.slice(0, merge ? cursor : cursor + 1).concat({ label, icon, nodes })
     set({ nodes, history: next, cursor: next.length - 1, dirty: get().dirty + 1, ...(selection ? { selection } : {}) })
   }
   const clr = () => contextOf(get()).clearances

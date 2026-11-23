@@ -429,3 +429,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-size: 12px; font-weight: 600; white-space: nowrap;
   color: var(--accent); background: var(--bg-raised); border: 1px solid var(--accent);
 }
+
+/* Drag-to-change number fields */
+.dim.scrub { cursor: ew-resize; touch-action: none; }
+.dim.scrub input:not(:focus) { cursor: ew-resize; }
+.dim.scrub:hover:not(:focus-within) { border-color: var(--text-secondary); }
+.dim.dragging, .dim.dragging input { cursor: ew-resize; border-color: var(--accent); user-select: none; }

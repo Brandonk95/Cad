@@ -1,26 +1,85 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FILAMENT_COLORS, MAGNETS, SCREW_SIZES, SCREW_TYPES, SCREWS, screwHoleSize } from '../model/catalog'
-import { holeIsSideways, isRoundHole } from '../model/geometry'
+import { holeIsSideways, isRoundHole, solidWorldBox } from '../model/geometry'
 import { canOpen, DEFAULT_FLOOR, DEFAULT_WALL, EDGE_KINDS, hasFloor, HOLLOW_KINDS, ROUND_SIDES, SIDED_KINDS } from '../model/details'
 import { findNode, mapNodes } from '../model/ops'
-import { FIT_CLASSES, wallMin, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
-import { useEditor, usePrintContext } from '../store/editor'
+import { FIT_CLASSES, wallMin, type Clearances, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
+import { beginScrub, endScrub, useEditor, usePrintContext } from '../store/editor'
 import { I } from './Icons'
+
+/** Position that keeps a part's bottom where it was after a size change, so it doesn't sink or float. */
+const keepBottom = (before: ShapeNode, after: ShapeNode, clr: Clearances): Vec3 => {
+  const dz = solidWorldBox(before, clr).min.z - solidWorldBox(after, clr).min.z
+  return [before.position[0], before.position[1], Math.round((before.position[2] + dz) * 1000) / 1000]
+}
 
 const fmt = (v: number) => (Math.round(v * 1000) / 1000).toString()
 
-function Num({ label, value, onChange, unit = 'mm', step = 1 }: { label: string; value: number; onChange: (v: number) => void; unit?: string; step?: number }) {
+/** Pixels of drag per step. Shift: 10 steps, Alt: a tenth of a step. */
+const PX_PER_STEP = 4
+
+function Num({ label, value, onChange, unit = 'mm', step = 1, scrub = true }: { label: string; value: number; onChange: (v: number) => void; unit?: string; step?: number; scrub?: boolean }) {
   const [text, setText] = useState(fmt(value))
+  const [dragging, setDragging] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
+  const latest = useRef({ value, onChange })
+  latest.current = { value, onChange }
   useEffect(() => setText(fmt(value)), [value])
   const commit = () => {
     const v = parseFloat(text)
     if (Number.isFinite(v) && v !== value) onChange(v)
     else setText(fmt(value))
   }
+
+  // Drag left / right on the field to change the value. A click without moving still edits as text.
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!scrub || e.button !== 0 || document.activeElement === input.current) return
+    e.preventDefault()
+    // Finish any field being typed in first (it commits on blur).
+    ;(document.activeElement as HTMLElement | null)?.blur?.()
+    const el = e.currentTarget
+    el.setPointerCapture(e.pointerId)
+    const startX = e.clientX
+    const start = latest.current.value
+    let moved = false
+    let last = start
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX
+      if (!moved && Math.abs(dx) < 3) return
+      if (!moved) {
+        moved = true
+        setDragging(true)
+        beginScrub()
+      }
+      const k = ev.shiftKey ? 10 : ev.altKey ? 0.1 : 1
+      const v = Math.round((start + Math.round(dx / PX_PER_STEP) * step * k) * 1000) / 1000
+      if (v !== last) {
+        last = v
+        latest.current.onChange(v)
+      }
+    }
+    const up = () => {
+      el.removeEventListener('pointermove', move)
+      el.removeEventListener('pointerup', up)
+      el.removeEventListener('pointercancel', up)
+      if (moved) {
+        endScrub()
+        setDragging(false)
+      } else {
+        input.current?.focus()
+        input.current?.select()
+      }
+    }
+    el.addEventListener('pointermove', move)
+    el.addEventListener('pointerup', up)
+    el.addEventListener('pointercancel', up)
+  }
+
   return (
-    <div className="dim">
+    <div className={`dim${scrub ? ' scrub' : ''}${dragging ? ' dragging' : ''}`} onPointerDown={onPointerDown} title={scrub ? 'Drag left or right to change. Shift: faster, Alt: finer. Click to type.' : undefined}>
       <label>{label}</label>
       <input
+        ref={input}
         value={text}
         inputMode="decimal"
         aria-label={label}
@@ -121,7 +180,7 @@ function ShapeFields({ n }: { n: ShapeNode }) {
 
       <div className="section">
         <h4>Size</h4>
-        <Vec v={n.size} min={0.05} onChange={(size) => set({ size }, 'Resize')} labels={n.kind === 'cylinder' || n.kind === 'pin' ? ['⌀X', '⌀Y', 'H'] : ['W', 'D', 'H']} />
+        <Vec v={n.size} min={0.05} onChange={(size) => set({ size, position: keepBottom(n, { ...n, size }, ctx.clearances) }, 'Resize')} labels={n.kind === 'cylinder' || n.kind === 'pin' ? ['⌀X', '⌀Y', 'H'] : ['W', 'D', 'H']} />
       </div>
 
       {n.hole && (
@@ -306,7 +365,7 @@ function Transform({ n }: { n: SceneNode }) {
       <div className="section">
         <h4>Scale</h4>
         <div className="dims two">
-          <Num key={cursor} label="All" unit="%" value={100} onChange={(v) => v > 0 && v !== 100 && scale([v / 100, v / 100, v / 100])} />
+          <Num key={cursor} scrub={false} label="All" unit="%" value={100} onChange={(v) => v > 0 && v !== 100 && scale([v / 100, v / 100, v / 100])} />
           <div className="row">
             <button className="btn small" onClick={() => scale([0.5, 0.5, 0.5])} title="Half size">½×</button>
             <button className="btn small" onClick={() => scale([2, 2, 2])} title="Double size">2×</button>
