@@ -34,6 +34,23 @@ export interface ShapeParams {
   /** Magnet pocket */
   magnetDia?: number
   magnetThick?: number
+
+  // Details (basic shapes). All lengths in mm.
+  /** Box: radius of the vertical corners */
+  cornerRadius?: number
+  /** Box, cylinder, pin: chamfer or fillet on the top and bottom edges */
+  edge?: number
+  edgeStyle?: 'chamfer' | 'round'
+  /** Sphere: flat-bottomed dome */
+  half?: boolean
+  /** Hollow shell */
+  hollow?: boolean
+  /** Side and top wall thickness */
+  wall?: number
+  /** Bottom thickness */
+  floor?: number
+  /** Which faces are left open: none, the top, or top and bottom (a tube) */
+  opening?: 'closed' | 'top' | 'both'
 }
 
 export interface ShapeNode {

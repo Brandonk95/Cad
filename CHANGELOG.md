@@ -4,6 +4,15 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.5.0 — 2026-11-23
+
+- Hollow any box, cylinder, cone, sphere or wedge with your own wall and floor thickness
+- Leave the top open for trays and cups, or open both ends for tubes
+- Rounded box corners, plus chamfered or rounded top and bottom edges
+- Flat-sided cylinders and cones: triangle, square, hexagon, octagon and more
+- Half spheres (domes) with a flat base, and a lead-in chamfer for pins
+- Walls thinner than your printer handles are flagged as you type
+
 ## 0.4.2 — 2026-11-23
 
 - Dragging sideways no longer lifts parts onto other parts. Drag up or down near a part's top to snap onto it.

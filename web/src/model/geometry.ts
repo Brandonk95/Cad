@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { Brush, Evaluator, ADDITION, SUBTRACTION } from 'three-bvh-csg'
 import { SCREWS } from './catalog'
+import { detailedGeometry } from './details'
 import type { Clearances, GroupNode, SceneNode, ShapeNode, Vec3 } from './types'
 
 const DEG = Math.PI / 180
@@ -36,8 +37,9 @@ const clean = (g: THREE.BufferGeometry) => {
   return out
 }
 
-const cylinderZ = (rTop: number, rBot: number, seg: number) => {
-  const g = new THREE.CylinderGeometry(rTop, rBot, 1, seg, 1)
+/** Unit cylinder along Z. thetaStart = PI/seg puts a flat side facing -Y, matching details.ts. */
+const cylinderZ = (rTop: number, rBot: number, seg: number, thetaStart = 0) => {
+  const g = new THREE.CylinderGeometry(rTop, rBot, 1, seg, 1, false, thetaStart)
   g.rotateX(Math.PI / 2) // +Y (top) -> +Z
   return g
 }
@@ -103,6 +105,8 @@ export function buildShapeGeometries(n: ShapeNode, clr: Clearances, parentQuat =
     g.scale(sx, sy, sz)
     g.rotateZ(Math.atan2(up.y, up.x) - Math.PI / 2)
   } else {
+    const detailed = detailedGeometry(n, sx, sy, sz)
+    if (detailed) return [clean(detailed)]
     switch (n.kind) {
       case 'box':
         g = new THREE.BoxGeometry(1, 1, 1)
@@ -112,7 +116,7 @@ export function buildShapeGeometries(n: ShapeNode, clr: Clearances, parentQuat =
         g.rotateX(Math.PI / 2)
         break
       case 'cone':
-        g = cylinderZ(0.5 * (n.params.topRatio ?? 0), 0.5, seg)
+        g = cylinderZ(0.5 * (n.params.topRatio ?? 0), 0.5, seg, Math.PI / seg)
         break
       case 'wedge':
         g = wedge()
@@ -138,7 +142,7 @@ export function buildShapeGeometries(n: ShapeNode, clr: Clearances, parentQuat =
       case 'magnetPocket':
       case 'pin':
       default:
-        g = cylinderZ(0.5, 0.5, seg)
+        g = cylinderZ(0.5, 0.5, seg, n.kind === 'magnetPocket' ? 0 : Math.PI / seg)
     }
     g.scale(sx, sy, sz)
   }

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { FILAMENT_COLORS, MAGNETS, SCREW_SIZES, SCREW_TYPES, SCREWS, screwHoleSize } from '../model/catalog'
 import { holeIsSideways, isRoundHole } from '../model/geometry'
+import { canOpen, DEFAULT_FLOOR, DEFAULT_WALL, EDGE_KINDS, hasFloor, HOLLOW_KINDS, ROUND_SIDES, SIDED_KINDS } from '../model/details'
 import { findNode, mapNodes } from '../model/ops'
-import { FIT_CLASSES, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
+import { FIT_CLASSES, wallMin, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
 import { useEditor, usePrintContext } from '../store/editor'
 import { I } from './Icons'
 
@@ -154,6 +155,135 @@ function ShapeFields({ n }: { n: ShapeNode }) {
         <div className="section">
           <h4>Top</h4>
           <Num label="%" unit="" value={Math.round((n.params.topRatio ?? 0) * 100)} onChange={(v) => setParams({ topRatio: Math.min(1, Math.max(0, v / 100)) }, {}, 'Cone top')} />
+        </div>
+      )}
+
+      <ShapeDetails n={n} setParams={setParams} />
+    </>
+  )
+}
+
+const SIDES: { v: number; label: string }[] = [
+  { v: ROUND_SIDES, label: 'Round' },
+  { v: 3, label: 'Triangle' },
+  { v: 4, label: 'Square' },
+  { v: 5, label: 'Pentagon' },
+  { v: 6, label: 'Hexagon' },
+  { v: 8, label: 'Octagon' },
+  { v: 10, label: '10 sides' },
+  { v: 12, label: '12 sides' },
+]
+
+type SetParams = (p: Partial<ShapeNode['params']>, extra?: Partial<ShapeNode>, label?: string) => void
+
+/** Corners, edges, sides, dome and hollow shell for basic shapes. */
+function ShapeDetails({ n, setParams }: { n: ShapeNode; setParams: SetParams }) {
+  const ctx = usePrintContext()
+  const p = n.params
+  const [sx, sy, sz] = n.size
+  const minWall = wallMin(ctx.printer, ctx.material)
+  const sides = p.segments ?? ROUND_SIDES
+  const isRound = sides >= 24
+  const edge = p.edge ?? 0
+  const wall = p.wall ?? DEFAULT_WALL
+  const floor = p.floor ?? DEFAULT_FLOOR
+  const opening = p.opening ?? 'closed'
+  const showHollow = !n.hole && HOLLOW_KINDS.includes(n.kind)
+  const maxEdge = Math.max(0, Math.min(sx, sy, sz) / 2 - 0.05)
+  const maxWall = Math.max(0.2, Math.min(sx, sy, n.kind === 'sphere' && !p.half ? sz : Infinity) / 2 - 0.2)
+  const r2 = (v: number) => Math.round(v * 100) / 100
+
+  return (
+    <>
+      {SIDED_KINDS.includes(n.kind) && (
+        <div className="section">
+          <h4>Sides</h4>
+          <select className="input" aria-label="Sides" value={isRound ? ROUND_SIDES : sides} onChange={(e) => {
+            const v = Number(e.target.value)
+            setParams({ segments: v }, {}, v === ROUND_SIDES ? 'Round' : `${v} sides`)
+          }}>
+            {SIDES.map((s) => <option key={s.v} value={s.v}>{s.label}</option>)}
+          </select>
+          {!isRound && <p className="note">Flat sides let the part lie on a face and print without supports.</p>}
+        </div>
+      )}
+
+      {n.kind === 'box' && (
+        <div className="section">
+          <h4>Corners</h4>
+          <div className="dims two">
+            <Num label="Radius" value={p.cornerRadius ?? 0} step={0.5} onChange={(v) => setParams({ cornerRadius: r2(Math.max(0, Math.min(v, Math.min(sx, sy) / 2))) }, {}, 'Round corners')} />
+          </div>
+          <p className="note">Rounds the four upright corners.</p>
+        </div>
+      )}
+
+      {EDGE_KINDS.includes(n.kind) && (
+        <div className="section">
+          <h4>{n.kind === 'pin' ? 'Lead-in' : 'Top and bottom edges'}</h4>
+          <div className="dims two">
+            <Num label="Size" value={edge} step={0.2} onChange={(v) => setParams({ edge: r2(Math.max(0, Math.min(v, maxEdge))) }, {}, 'Edges')} />
+          </div>
+          {edge > 0 && (
+            <div className="seg" role="group" aria-label="Edge style">
+              <button aria-pressed={p.edgeStyle !== 'round'} onClick={() => setParams({ edgeStyle: 'chamfer' }, {}, 'Chamfer edges')}>Chamfer</button>
+              <button aria-pressed={p.edgeStyle === 'round'} onClick={() => setParams({ edgeStyle: 'round' }, {}, 'Round edges')}>Round</button>
+            </div>
+          )}
+          <p className="note">
+            {n.kind === 'pin'
+              ? 'A small chamfer helps the pin find its hole.'
+              : edge > 0 && p.edgeStyle === 'round'
+                ? 'A round bottom edge overhangs. Chamfers print cleaner on the bed.'
+                : 'A bottom chamfer also hides elephant foot.'}
+          </p>
+        </div>
+      )}
+
+      {n.kind === 'sphere' && (
+        <div className="section">
+          <h4>Shape</h4>
+          <div className="seg" role="group" aria-label="Sphere shape">
+            <button aria-pressed={!p.half} onClick={() => setParams({ half: false }, {}, 'Full sphere')}>Full</button>
+            <button aria-pressed={!!p.half} onClick={() => setParams({ half: true }, { size: [sx, sy, r2(sz / 2)] }, 'Dome')}>Dome</button>
+          </div>
+          {p.half && <p className="note">Flat base sits on the bed. No supports needed.</p>}
+        </div>
+      )}
+
+      {showHollow && (
+        <div className="section">
+          <h4>Inside</h4>
+          <div className="seg" role="group" aria-label="Solid or hollow">
+            <button aria-pressed={!p.hollow} onClick={() => setParams({ hollow: false }, {}, 'Fill in')}>Filled</button>
+            <button aria-pressed={!!p.hollow} onClick={() => setParams({ hollow: true, wall: p.wall ?? Math.max(DEFAULT_WALL, r2(minWall)), floor: p.floor ?? Math.max(DEFAULT_FLOOR, r2(minWall)) }, {}, 'Hollow')}>Hollow</button>
+          </div>
+          {p.hollow && (
+            <>
+              <div className="dims two">
+                <Num label="Wall" value={wall} step={0.2} onChange={(v) => setParams({ wall: r2(Math.max(0.2, Math.min(v, maxWall))) }, {}, 'Wall thickness')} />
+                {hasFloor(n) && opening !== 'both' && (
+                  <Num label="Floor" value={floor} step={0.2} onChange={(v) => setParams({ floor: r2(Math.max(0.2, Math.min(v, sz - 0.4))) }, {}, 'Floor thickness')} />
+                )}
+              </div>
+              {canOpen(n) && (
+                <div className="seg" role="group" aria-label="Opening">
+                  <button aria-pressed={opening === 'closed'} onClick={() => setParams({ opening: 'closed' }, {}, 'Closed')}>Closed</button>
+                  <button aria-pressed={opening === 'top'} onClick={() => setParams({ opening: 'top' }, {}, n.kind === 'sphere' ? 'Open base' : 'Open top')}>{n.kind === 'sphere' ? 'Open base' : 'Open top'}</button>
+                  {n.kind !== 'sphere' && <button aria-pressed={opening === 'both'} onClick={() => setParams({ opening: 'both' }, {}, 'Tube')}>Tube</button>}
+                </div>
+              )}
+              <p className="note">
+                {wall < minWall - 1e-6
+                  ? <>Thinner than <span className="mono">{minWall.toFixed(2)}</span><span className="unit">mm</span>, the thinnest wall your printer and material print well.</>
+                  : opening === 'closed' && canOpen(n)
+                    ? 'Closed shells trap air. Fine for most slicers, or open the top to make a box or cup.'
+                    : n.kind === 'sphere' && !p.half
+                      ? 'A sealed shell. Light and fast to print.'
+                      : 'Print check measures the real wall thickness as you go.'}
+              </p>
+            </>
+          )}
         </div>
       )}
     </>
