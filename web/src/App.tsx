@@ -6,6 +6,7 @@ import { Auth } from './screens/Auth'
 import { Home } from './screens/Home'
 import { Editor } from './screens/Editor'
 import { Toasts } from './ui/Toasts'
+import { UpdateNotice } from './ui/UpdateNotice'
 import { Mark } from './ui/Logo'
 
 function useLibrary(authed: boolean) {
@@ -54,6 +55,7 @@ export default function App() {
         <Home onSignOut={() => setAuthed(false)} />
       )}
       <Toasts />
+      <UpdateNotice />
     </>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getProject, saveProject } from '../lib/pb'
+import { registerFlush } from '../lib/saveGate'
 import { go } from '../lib/route'
 import { useEditor } from '../store/editor'
 import { useLiveAnalysis } from '../store/analysis'
@@ -74,30 +75,48 @@ function useAutosave(projectId: string | null) {
   const dirty = useEditor((s) => s.dirty)
   const [state, setState] = useState('Saved')
   const lastThumb = useRef(0)
+  const pending = useRef(false)
+  const save = useRef<() => Promise<void>>(async () => {})
+
+  save.current = async () => {
+    if (!projectId) return
+    pending.current = false
+    const s = useEditor.getState()
+    setState('Saving…')
+    try {
+      const thumb = Date.now() - lastThumb.current > 15000 ? await captureThumbnail() : null
+      if (thumb) lastThumb.current = Date.now()
+      await saveProject(projectId, {
+        name: s.projectName,
+        model: { version: 1, units: 'mm', nodes: s.nodes },
+        ...(s.printerId && s.printerId !== 'guest' ? { printer: s.printerId } : {}),
+        ...(s.materialId && /^[a-z0-9]{15}$/.test(s.materialId) ? { material: s.materialId } : {}),
+        ...(thumb ? { thumbnail: thumb } : {}),
+      })
+      setState('Saved')
+    } catch (e) {
+      console.error(e)
+      pending.current = true
+      setState("Couldn't save. Will retry on the next change.")
+    }
+  }
+
   useEffect(() => {
     if (!projectId || dirty === 0) return
+    pending.current = true
     setState('Unsaved changes')
-    const t = setTimeout(async () => {
-      const s = useEditor.getState()
-      setState('Saving…')
-      try {
-        const thumb = Date.now() - lastThumb.current > 15000 ? await captureThumbnail() : null
-        if (thumb) lastThumb.current = Date.now()
-        await saveProject(projectId, {
-          name: s.projectName,
-          model: { version: 1, units: 'mm', nodes: s.nodes },
-          ...(s.printerId && s.printerId !== 'guest' ? { printer: s.printerId } : {}),
-          ...(s.materialId && /^[a-z0-9]{15}$/.test(s.materialId) ? { material: s.materialId } : {}),
-          ...(thumb ? { thumbnail: thumb } : {}),
-        })
-        setState('Saved')
-      } catch (e) {
-        console.error(e)
-        setState("Couldn't save. Will retry on the next change.")
-      }
-    }, 1200)
+    const t = setTimeout(() => save.current(), 1200)
     return () => clearTimeout(t)
   }, [dirty, projectId])
+
+  // The update notice calls this before reloading so nothing is lost.
+  useEffect(() => {
+    registerFlush(async () => {
+      if (pending.current) await save.current()
+    })
+    return () => registerFlush(null)
+  }, [])
+
   return state
 }
 

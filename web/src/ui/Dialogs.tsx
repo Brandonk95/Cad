@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { CURRENT_VERSION, noticesEnabled, setNoticesEnabled } from '../lib/updates'
 import { PRINTER_PRESETS } from '../model/catalog'
 import { worldBodies } from '../model/geometry'
 import { findNode } from '../model/ops'
@@ -323,6 +324,7 @@ const KEYS: [string, string][] = [
 export function ShortcutsDialog() {
   const reduced = useEditor((s) => s.reducedMotion)
   const setReduced = useEditor((s) => s.setReducedMotion)
+  const [notices, setNotices] = useState(noticesEnabled)
   return (
     <Sheet title="Keyboard shortcuts" onClose={() => useEditor.getState().setDialog(null)}>
       <div className="section">
@@ -337,6 +339,15 @@ export function ShortcutsDialog() {
         <input type="checkbox" checked={reduced} onChange={(e) => setReduced(e.target.checked)} />
         Reduce motion
       </label>
+      <label className="row">
+        <input type="checkbox" checked={notices} onChange={(e) => {
+          setNoticesEnabled(e.target.checked)
+          setNotices(e.target.checked)
+          window.dispatchEvent(new Event('stratum:update-prefs'))
+        }} />
+        Tell me when a new version is ready
+      </label>
+      <p className="note" style={{ margin: 0 }}>Stratum <span className="mono">{CURRENT_VERSION}</span></p>
     </Sheet>
   )
 }
