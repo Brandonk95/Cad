@@ -368,3 +368,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .update-notice ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
 .update-notice .note { margin: 0; }
 .update-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---- Version tag ----------------------------------------------------- */
+.version-tag { font: 500 11px var(--font-mono); color: var(--text-secondary); white-space: nowrap; user-select: all; }
+.version-tag.fixed { position: fixed; right: 12px; bottom: 8px; z-index: 5; opacity: 0.8; }
+.history .version-tag { padding-left: 12px; margin-left: 4px; border-left: 1px solid var(--border); }

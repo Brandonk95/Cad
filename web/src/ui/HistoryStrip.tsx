@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useEditor, type HistoryIcon } from '../store/editor'
 import { I, type IconName } from './Icons'
+import { VersionTag } from './VersionTag'
 
 const iconFor = (i: HistoryIcon): IconName => (i in I ? (i as IconName) : 'start')
 
@@ -36,6 +37,7 @@ export function HistoryStrip() {
       <span className="count">
         Step <span className="mono">{cursor + 1}</span> of <span className="mono">{history.length}</span>
       </span>
+      <VersionTag inline />
     </footer>
   )
 }

@@ -7,6 +7,7 @@ import { Home } from './screens/Home'
 import { Editor } from './screens/Editor'
 import { Toasts } from './ui/Toasts'
 import { UpdateNotice } from './ui/UpdateNotice'
+import { VersionTag } from './ui/VersionTag'
 import { Mark } from './ui/Logo'
 
 function useLibrary(authed: boolean) {
@@ -56,6 +57,7 @@ export default function App() {
       )}
       <Toasts />
       <UpdateNotice />
+      {route.name !== 'project' || !authed ? <VersionTag /> : null}
     </>
   )
 }
