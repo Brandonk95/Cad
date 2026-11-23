@@ -20,7 +20,7 @@ function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
-      if (t.closest('input, textarea, select, [contenteditable]')) return
+      if (t?.closest?.('input, textarea, select, [contenteditable]')) return
       if (document.querySelector('.scrim')) return
       const s = useEditor.getState()
       const k = e.key.toLowerCase()

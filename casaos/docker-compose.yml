@@ -1,8 +1,8 @@
 # Stratum for CasaOS, using a prebuilt image.
 #
 # In CasaOS: App Store > Custom Install > Import, paste this file.
-# Replace YOUR_GITHUB_USER with the account that publishes the image
-# (the GitHub Actions workflow in .github/workflows builds it on every push to main).
+# The image is built by GitHub Actions on every push to master of
+# github.com/Brandonk95/Cad and published to ghcr.io/brandonk95/stratum.
 #
 # Auto-update: the watchtower service checks GHCR every 5 minutes and restarts
 # Stratum on a new image. It only touches containers labeled for the stratum
@@ -13,7 +13,7 @@ name: stratum
 
 services:
   stratum:
-    image: ghcr.io/YOUR_GITHUB_USER/stratum:latest
+    image: ghcr.io/brandonk95/stratum:latest
     container_name: stratum
     restart: unless-stopped
     ports:
@@ -83,7 +83,7 @@ x-casaos:
   author: Stratum
   developer: Stratum
   category: Utilities
-  icon: https://raw.githubusercontent.com/YOUR_GITHUB_USER/Cad/main/assets/icon.svg
+  icon: https://raw.githubusercontent.com/Brandonk95/Cad/master/assets/icon.svg
   tagline:
     en_us: CAD that knows your printer.
   title:

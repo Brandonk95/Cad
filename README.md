@@ -34,9 +34,27 @@ The container serves both the app and the API on port 8090. Data lives in `/DATA
 docker compose up -d --build
 ```
 
-**Option B: prebuilt image.** Push this repo to GitHub; [.github/workflows/image.yml](.github/workflows/image.yml) publishes `ghcr.io/<you>/stratum` for amd64 and arm64. Edit `YOUR_GITHUB_USER` in [casaos/docker-compose.yml](casaos/docker-compose.yml), then in CasaOS go to App Store, Custom Install, Import, and paste it.
+**Option B: prebuilt image with auto-updates (recommended).** Every push to `master` runs [.github/workflows/image.yml](.github/workflows/image.yml), which publishes `ghcr.io/brandonk95/stratum` for amd64 and arm64. In CasaOS go to App Store, Custom Install, Import, and paste [casaos/docker-compose.yml](casaos/docker-compose.yml).
 
-The CasaOS dashboard icon is [assets/icon.svg](assets/icon.svg), loaded from `raw.githubusercontent.com/YOUR_GITHUB_USER/Cad/main/assets/icon.svg` in both compose files. Replace the user (and the repo name, if it isn't `Cad`) once the repo is on GitHub. If the repo is private, CasaOS can't fetch the icon; host it anywhere public instead.
+The CasaOS dashboard icon is [assets/icon.svg](assets/icon.svg), served from this public repo.
+
+### Auto-updates
+
+[casaos/docker-compose.yml](casaos/docker-compose.yml) includes [Watchtower](https://github.com/nicholas-fedor/watchtower) (the maintained fork; the original `containrrr/watchtower` doesn't work with Docker 29+). It checks GHCR every 5 minutes and restarts Stratum when a new image is published. It is scoped to `stratum`, so it never touches your other containers.
+
+Open Stratum tabs also check `/version.json` every 5 minutes (and whenever the tab comes back into view). When a new build is live, a card in the top right lists what changed, taken from [CHANGELOG.md](CHANGELOG.md), with three choices:
+
+- **Reload to update**: saves the open part first, then reloads.
+- **Got it**: hides the card until the next release.
+- **Don't show again**: turns the cards off. Turn them back on under Keyboard shortcuts (`?`).
+
+Option A builds locally, so Watchtower has no registry to pull from; update with `git pull && docker compose up -d --build`.
+
+### Releasing
+
+1. Add a `## X.Y.Z — date` section at the top of [CHANGELOG.md](CHANGELOG.md) with short bullets (these show in the update card).
+2. Set the same version in [web/package.json](web/package.json).
+3. Commit, tag `vX.Y.Z`, and push `master` with tags. CI publishes `latest`, `X.Y.Z` and a commit tag.
 
 Open `http://<casaos-ip>:8090`, create an account, and pick your printer.
 

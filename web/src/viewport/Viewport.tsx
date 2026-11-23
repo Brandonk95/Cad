@@ -205,6 +205,8 @@ function Gizmo({ id }: { id: string }) {
 
 // ---------------------------------------------------------------------------
 
+let pendingFrame: THREE.Box3 | null = null
+
 function CameraRig() {
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update: () => void } | null
   const camera = useThree((s) => s.camera)
@@ -212,12 +214,14 @@ function CameraRig() {
   const reduced = useEditor((s) => s.reducedMotion)
 
   useEffect(() => {
-    const onFrame = (e: Event) => {
-      if (!controls) return
-      const box = (e as CustomEvent<THREE.Box3>).detail
+    const apply = (box: THREE.Box3) => {
+      if (!controls) return false
       const center = box.getCenter(new THREE.Vector3())
       const radius = Math.max(box.getSize(new THREE.Vector3()).length() / 2, 15)
-      const dir = camera.position.clone().sub(controls.target).normalize()
+      let dir = camera.position.clone().sub(controls.target)
+      // Fall back to the default three-quarter view if the camera state is degenerate.
+      if (!Number.isFinite(dir.x + dir.y + dir.z) || dir.lengthSq() < 1e-6) dir = new THREE.Vector3(0.45, -0.7, 0.55)
+      dir.normalize()
       const dist = (radius / Math.sin(((camera as THREE.PerspectiveCamera).fov * DEG) / 2)) * 1.6
       goal.current = { target: center, pos: center.clone().addScaledVector(dir, dist) }
       if (reduced) {
@@ -226,6 +230,13 @@ function CameraRig() {
         goal.current = null
         controls.update()
       }
+      return true
+    }
+    // A frame request made before the controls existed (e.g. right after load) runs now.
+    if (pendingFrame && apply(pendingFrame)) pendingFrame = null
+    const onFrame = (e: Event) => {
+      const box = (e as CustomEvent<THREE.Box3>).detail
+      if (apply(box)) pendingFrame = null
     }
     window.addEventListener('stratum:frame', onFrame)
     return () => window.removeEventListener('stratum:frame', onFrame)
@@ -249,6 +260,7 @@ export function frameSelection() {
   const box = new THREE.Box3()
   for (const n of nodes) box.union(nodeWorldBox(n, clearances))
   if (box.isEmpty()) box.setFromCenterAndSize(new THREE.Vector3(0, 0, 20), new THREE.Vector3(120, 120, 40))
+  pendingFrame = box
   window.dispatchEvent(new CustomEvent('stratum:frame', { detail: box }))
 }
 
