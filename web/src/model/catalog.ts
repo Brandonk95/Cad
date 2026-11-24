@@ -61,6 +61,7 @@ export const SHAPES: ShapeTemplate[] = [
   { kind: 'sphere', label: 'Sphere', key: 'O', make: () => ({ type: 'shape', kind: 'sphere', name: 'Sphere', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: {} }) },
   { kind: 'cone', label: 'Cone', key: 'K', make: () => ({ type: 'shape', kind: 'cone', name: 'Cone', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: { segments: 64, topRatio: 0 } }) },
   { kind: 'wedge', label: 'Wedge', key: 'W', make: () => ({ type: 'shape', kind: 'wedge', name: 'Wedge', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: {} }) },
+  { kind: 'nosecone', label: 'Nose cone', key: 'E', make: () => ({ type: 'shape', kind: 'nosecone', name: 'Nose cone', rotation: [0, 0, 0], size: [30, 30, 90], hole: false, color: SOLID, params: { segments: 64, noseShape: 'ogive', shoulder: 0.2, shoulderRatio: 0.93, noseWall: 0 } }) },
   { kind: 'text', label: 'Text', key: 'T', make: () => ({ type: 'shape', kind: 'text', name: 'Text', rotation: [0, 0, 0], size: [round1(textAspect('Text') * 10), 10, 2], hole: false, color: SOLID, params: { text: 'Text' } }) },
 ]
 

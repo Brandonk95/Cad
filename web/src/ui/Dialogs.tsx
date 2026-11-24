@@ -306,7 +306,7 @@ export function OrientationDialog() {
 // ---------------------------------------------------------------------------
 
 const KEYS: [string, string][] = [
-  ['B C O K W T', 'Box, cylinder, sphere, cone, wedge, text'],
+  ['B C O K W E T', 'Box, cylinder, sphere, cone, wedge, nose cone, text'],
   ['X M N', 'Screw hole, magnet pocket, pin and hole'],
   ['H', 'Switch solid / hole'],
   ['G / Shift+G', 'Combine / ungroup'],

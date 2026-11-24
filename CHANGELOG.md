@@ -4,6 +4,12 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.18.0 — 2026-11-24
+
+- New **Nose cone** shape (E) for rocketry. Pick Cone, Ogive, Parabolic, Elliptical or Von Kármán, with a preview of each profile.
+- Add a **shoulder** that slides into a body tube, and set its length and diameter. It steps out at 45°, so the nose prints tip up without supports.
+- Set a **wall** to make the nose hollow and open at the bottom. The inside tip comes to a 45° point, so it needs no support, and the wall keeps its full thickness all the way round.
+
 ## 0.17.0 — 2026-11-24
 
 - **Drop onto a face:** press a shape key with the mouse over the canvas, or drag a shape from the shelf, and it lands where you point, standing on that face. Holes sink straight into it.

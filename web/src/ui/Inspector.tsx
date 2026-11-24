@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { FILAMENT_COLORS, MAGNETS, SCREW_SIZES, SCREW_TYPES, SCREWS, screwHoleSize } from '../model/catalog'
 import { textAspect } from '../model/text'
+import { NOSE_SHAPES, noseRadius, type NoseShape } from '../model/nosecone'
 import { holeIsSideways, isRoundHole, solidWorldBox } from '../model/geometry'
 import { canOpen, DEFAULT_FLOOR, DEFAULT_WALL, EDGE_KINDS, hasFloor, HOLLOW_KINDS, ROUND_SIDES, SIDED_KINDS } from '../model/details'
 import { findHub, findNode, mapNodes, type PatternOpts } from '../model/ops'
@@ -123,6 +124,60 @@ const Vec = ({ v, onChange, unit, labels = ['X', 'Y', 'Z'], min }: { v: Vec3; on
 
 const FIT_LABEL: Record<FitClass, string> = { press: 'Press', snug: 'Snug', slide: 'Slide', loose: 'Loose' }
 
+/** Small drawing of a nose profile for its button. */
+function NoseThumb({ shape }: { shape: NoseShape }) {
+  const pts: string[] = []
+  for (let i = 0; i <= 24; i++) {
+    const x = (i / 24) * 22
+    const r = noseRadius(shape, x, 22, 6)
+    pts.push(`${(10 + r).toFixed(2)},${(2 + x).toFixed(2)}`)
+  }
+  const left = pts.map((p) => { const [x, y] = p.split(',').map(Number); return `${(20 - x).toFixed(2)},${y}` }).reverse()
+  return (
+    <svg width="20" height="28" viewBox="0 0 20 28" aria-hidden="true">
+      <path d={`M${left.join(' L')} L${pts.join(' L')} Z`} fill="currentColor" opacity={0.85} />
+      <rect x="5" y="24" width="10" height="3.5" fill="currentColor" opacity={0.5} />
+    </svg>
+  )
+}
+
+/** Profile, shoulder and wall of a nose cone. Lengths shown in mm, stored as shares so scaling keeps the look. */
+function NoseFields({ n }: { n: ShapeNode }) {
+  const update = useEditor((s) => s.updateNode)
+  const p = n.params
+  const shape = p.noseShape ?? 'ogive'
+  const D = Math.max(n.size[0], n.size[1])
+  const H = n.size[2]
+  const r2 = (v: number) => Math.round(v * 100) / 100
+  const setP = (q: Partial<ShapeNode['params']>, label: string) => update(n.id, { params: { ...p, ...q } }, label, 'size')
+  const info = NOSE_SHAPES.find((s) => s.id === shape)
+  return (
+    <div className="section">
+      <h4>Nose shape</h4>
+      <div className="nose-shapes" role="group" aria-label="Nose shape">
+        {NOSE_SHAPES.map((s) => (
+          <button key={s.id} aria-pressed={shape === s.id} title={s.hint} onClick={() => setP({ noseShape: s.id }, `Nose: ${s.label}`)}>
+            <NoseThumb shape={s.id} />
+            <span>{s.label}</span>
+          </button>
+        ))}
+      </div>
+      {info && <p className="note">{info.hint}</p>}
+      <h4>Shoulder</h4>
+      <div className="dims two">
+        <Num label="Length" value={r2((p.shoulder ?? 0) * H)} onChange={(v) => setP({ shoulder: Math.min(0.9, Math.max(0, v / H)) }, 'Shoulder length')} />
+        <Num label="⌀" value={r2((p.shoulderRatio ?? 0.93) * D)} onChange={(v) => setP({ shoulderRatio: Math.min(1, Math.max(0.2, v / D)) }, 'Shoulder size')} />
+      </div>
+      <p className="note">The shoulder slides into the body tube. Set ⌀ to the tube's inside diameter, a little under for a slip fit. Length 0 removes it.</p>
+      <h4>Wall</h4>
+      <div className="dims two">
+        <Num label="Wall" step={0.2} value={r2(p.noseWall ?? 0)} onChange={(v) => setP({ noseWall: Math.max(0, v) }, v > 0 ? 'Hollow nose' : 'Solid nose')} />
+      </div>
+      <p className="note">{(p.noseWall ?? 0) > 0 ? 'Hollow and open at the bottom, so it prints light. Print it tip up.' : '0 is solid. Set a wall (1–2 mm) for a light, hollow nose.'}</p>
+    </div>
+  )
+}
+
 /** The letters of a text shape. Width follows the new text so letters keep their height. */
 function TextField({ n }: { n: ShapeNode }) {
   const text = n.params.text ?? ''
@@ -167,6 +222,7 @@ function ShapeFields({ n }: { n: ShapeNode }) {
       </div>
 
       {n.kind === 'text' && <TextField n={n} />}
+      {n.kind === 'nosecone' && <NoseFields n={n} />}
 
       {n.kind === 'screwHole' && (
         <div className="section">
@@ -212,7 +268,7 @@ function ShapeFields({ n }: { n: ShapeNode }) {
 
       <div className="section">
         <h4>Size</h4>
-        <Vec v={n.size} min={0.05} onChange={(size) => set({ size, position: keepBottom(n, { ...n, size }, ctx.clearances) }, 'Resize')} labels={n.kind === 'cylinder' || n.kind === 'pin' ? ['⌀X', '⌀Y', 'H'] : ['W', 'D', 'H']} />
+        <Vec v={n.size} min={0.05} onChange={(size) => set({ size, position: keepBottom(n, { ...n, size }, ctx.clearances) }, 'Resize')} labels={n.kind === 'cylinder' || n.kind === 'pin' || n.kind === 'nosecone' ? ['⌀X', '⌀Y', 'H'] : ['W', 'D', 'H']} />
       </div>
 
       {n.hole && (
@@ -736,7 +792,7 @@ export function Inspector() {
               }} />
             </div>
             <div className="row">
-              {n.type === 'group' ? <span className="chip"><I.group size={14} /> {n.children.length} shapes combined</span> : <span className="chip">{n.kind === 'screwHole' || n.kind === 'magnetPocket' || n.kind === 'pin' ? 'Print primitive' : n.kind === 'extrude' ? 'Sketch' : n.kind === 'text' ? 'Text' : 'Shape'}</span>}
+              {n.type === 'group' ? <span className="chip"><I.group size={14} /> {n.children.length} shapes combined</span> : <span className="chip">{n.kind === 'screwHole' || n.kind === 'magnetPocket' || n.kind === 'pin' ? 'Print primitive' : n.kind === 'extrude' ? 'Sketch' : n.kind === 'text' ? 'Text' : n.kind === 'nosecone' ? 'Rocketry' : 'Shape'}</span>}
             </div>
             {n.type === 'shape' && <ShapeFields n={n} />}
             {n.type === 'group' && (

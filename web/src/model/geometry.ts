@@ -3,6 +3,7 @@ import { Brush, Evaluator, ADDITION, SUBTRACTION } from 'three-bvh-csg'
 import { SCREWS } from './catalog'
 import { detailedGeometry } from './details'
 import { unitTextGeometry } from './text'
+import { noseGeometry } from './nosecone'
 import type { Clearances, GroupNode, SceneNode, ShapeNode, Vec3 } from './types'
 
 const DEG = Math.PI / 180
@@ -130,6 +131,11 @@ export function buildShapeGeometries(n: ShapeNode, clr: Clearances, parentQuat =
         }
         g = extrudeZ(new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))), 12)
         break
+      }
+      case 'nosecone': {
+        // Built at full size so the hollow wall keeps its thickness.
+        const p = n.params
+        return [clean(noseGeometry({ shape: p.noseShape ?? 'ogive', shoulder: p.shoulder ?? 0, shoulderRatio: p.shoulderRatio ?? 0.93, wall: p.noseWall ?? 0 }, sx, sy, sz, seg))]
       }
       case 'text':
         g = unitTextGeometry(n.params.text ?? '', n.params.flipX) ?? new THREE.BoxGeometry(1, 1, 1)

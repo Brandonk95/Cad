@@ -49,6 +49,7 @@ export const I = {
   pull: (p: P) => <Svg {...p}><path d="M3 16h14M5 16v-3h10v3M10 11V3M7 6l3-3 3 3" /></Svg>,
   pattern: (p: P) => <Svg {...p}><circle cx="10" cy="10" r="6.5" strokeDasharray="2 2.2" /><circle cx="10" cy="3.5" r="1.8" fill="currentColor" /><circle cx="15.6" cy="13.2" r="1.8" fill="currentColor" /><circle cx="4.4" cy="13.2" r="1.8" fill="currentColor" /></Svg>,
   linear: (p: P) => <Svg {...p}><rect x="2.5" y="7" width="4" height="6" rx="1" fill="currentColor" /><rect x="8" y="7" width="4" height="6" rx="1" /><rect x="13.5" y="7" width="4" height="6" rx="1" /><path d="M3 16h14" strokeDasharray="1.5 1.5" /></Svg>,
+  nosecone: (p: P) => <Svg {...p}><path d="M10 2c-2.8 3-4 7-4 11.5h8C14 9 12.8 5 10 2z" /><path d="M7 13.5V18h6v-4.5" /></Svg>,
   text: (p: P) => <Svg {...p}><path d="M4 5.5V4h12v1.5M10 4v12.5M7.5 16.5h5" /></Svg>,
   section: (p: P) => <Svg {...p}><path d="M10 2.5 16.5 6v8L10 17.5 3.5 14V6z" strokeOpacity={0.45} /><path d="M2 10.5h16" /><path d="M3.5 10.5 10 14l6.5-3.5" /></Svg>,
   mirror: (p: P) => <Svg {...p}><path d="M10 2.5v15" strokeDasharray="1.6 1.6" /><path d="M7.5 5 3 14.5h4.5z" /><path d="M12.5 5 17 14.5h-4.5z" fill="currentColor" /></Svg>,

@@ -514,3 +514,13 @@ body.picking canvas { cursor: crosshair !important; }
 .section-panel input[type='range'] { width: 160px; accent-color: var(--accent); }
 .section-at { font-size: 12px; min-width: 84px; font-variant-numeric: tabular-nums; }
 .shell:has(.inspector.open) .group-banner { left: calc(50% - 150px); max-width: calc(100% - 332px); }
+
+/* Nose cone profiles */
+.nose-shapes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 6px; }
+.nose-shapes button {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px 4px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: transparent; color: var(--text-secondary);
+  font: 500 10px var(--font-sans, inherit); cursor: pointer;
+}
+.nose-shapes button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.nose-shapes button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

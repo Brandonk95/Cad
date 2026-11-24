@@ -20,6 +20,8 @@ export type ShapeKind =
   | 'extrude'
   /** Raised letters, or engraved ones as a hole */
   | 'text'
+  /** Rocket nose cone turned around Z, tip up, with an optional shoulder */
+  | 'nosecone'
 
 export type ScrewSize = 'M2' | 'M2.5' | 'M3' | 'M4' | 'M5' | 'M6' | 'M8'
 export type ScrewType = 'clearance' | 'tapped' | 'insert' | 'nut'
@@ -63,6 +65,14 @@ export interface ShapeParams {
   text?: string
   /** Text: drawn mirror-image (set by Mirror) */
   flipX?: boolean
+  /** Nose cone profile */
+  noseShape?: 'cone' | 'ogive' | 'parabolic' | 'elliptical' | 'haack'
+  /** Nose cone shoulder length as a share of the height (0 = none) */
+  shoulder?: number
+  /** Nose cone shoulder diameter as a share of the base diameter */
+  shoulderRatio?: number
+  /** Nose cone hollow wall in mm, open at the bottom (0 = solid) */
+  noseWall?: number
 }
 
 export interface ShapeNode {
