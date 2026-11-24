@@ -477,3 +477,19 @@ body.picking canvas { cursor: crosshair !important; }
 .measure-label span { opacity: 0.85; }
 /* Clear of the view toolbar, which the hint would cover when the inspector is open */
 .sketch-hint.below-tools { top: 64px; }
+
+/* Hover the problem dot to read what's wrong */
+.issue-dot-hit { padding: 6px; margin: -6px; cursor: help; position: relative; }
+.issue-tip {
+  position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); width: max-content; max-width: 280px;
+  padding: 8px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-panel); color: var(--text-primary, inherit);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); font-size: 12px; line-height: 1.4; pointer-events: none;
+}
+.issue-tip b { display: block; font-size: 13px; margin-bottom: 4px; }
+.issue-tip ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.issue-tip li { display: flex; gap: 6px; align-items: baseline; }
+.issue-tip p { margin: 0; }
+.issue-swatch { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--print-thin); transform: translateY(-1px); }
+.issue-swatch[data-kind='overhang'], .issue-swatch[data-kind='supports'] { background: var(--print-overhang); }
+.issue-swatch[data-kind='bridge'] { background: var(--print-bridge); }
+.issue-swatch[data-kind='tiny'] { background: var(--print-tiny); }

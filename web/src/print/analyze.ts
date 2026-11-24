@@ -47,7 +47,8 @@ export interface Estimate {
 export interface Analysis {
   issues: Issue[]
   overlays: BodyOverlay[]
-  worst?: { point: Vec3; kind: IssueKind }
+  /** Spot of the worst problem, and the part it is on */
+  worst?: { point: Vec3; kind: IssueKind; nodeId: string }
   estimate: Estimate
   bounds: THREE.Box3
   outOfBed: boolean
@@ -247,7 +248,7 @@ export function analyze(nodes: SceneNode[], bodies: Body[], ctx: PrintContext): 
     overlays.push({ id: body.id, cats })
     if (bestTri >= 0 && (rank[bestCat] ?? 0) > worstRank) {
       worstRank = rank[bestCat]
-      worst = { point: centroid(geo, bestTri), kind: kindOf[bestCat] }
+      worst = { point: centroid(geo, bestTri), kind: kindOf[bestCat], nodeId: body.id }
     }
 
     const w = box.max.x - box.min.x

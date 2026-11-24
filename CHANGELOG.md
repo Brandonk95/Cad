@@ -4,6 +4,11 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.16.0 — 2026-11-24
+
+- Hover the glowing problem dot to read what's wrong with that part, right on the canvas.
+- The camera can now orbit all the way to looking straight down from above or straight up from under the bed.
+
 ## 0.15.0 — 2026-11-24
 
 - **Mirror:** flip parts left–right, front–back (as seen from the camera) or top–bottom. Tick "Keep the original" to add the mirror image right beside it.

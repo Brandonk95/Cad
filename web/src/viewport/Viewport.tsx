@@ -10,6 +10,7 @@ import { clearSnapGuides, freeMove, snapMove, useSnapGuides, type SnapTarget } f
 import type { Clearances, SceneNode, Vec3 } from '../model/types'
 import { contextOf, useEditor, usePrintContext } from '../store/editor'
 import { useAnalysis } from '../store/analysis'
+import type { Analysis, Issue } from '../print/analyze'
 import { makeOverlayMaterial } from './overlayMaterial'
 import { useThemeColors, type ThemeColors } from './theme'
 import { FitTag, SizeTags } from './Tags'
@@ -140,6 +141,39 @@ function NodeMesh({ node, selected, clr, c, dim, pickable }: { node: SceneNode; 
 
 // ---------------------------------------------------------------------------
 
+const ISSUE_TITLES: Record<string, string> = { thin: 'Thin wall', tiny: 'Too small to print', overhang: 'Overhang', bridge: 'Long bridge', supports: 'Needs supports' }
+
+/** The pulsing dot on the worst spot. Hover it to read the problems on that part. */
+function IssueDot({ color, worst, issues }: { color: string; worst: NonNullable<Analysis['worst']>; issues: Issue[] }) {
+  const [open, setOpen] = useState(false)
+  const here = issues.filter((i) => i.nodeId === worst.nodeId)
+  // The worst kind first, then the rest on the same part. Fall back to every problem.
+  const list = (here.length ? here : issues).slice().sort((a, b) => Number(b.kind === worst.kind) - Number(a.kind === worst.kind))
+  const name = findNode(useEditor.getState().nodes, worst.nodeId)?.name
+  return (
+    <div className="issue-dot-hit" onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)} aria-label="Print problem">
+      <div className="issue-dot" style={{ background: color }} />
+      {open && (
+        <div className="issue-tip" role="tooltip">
+          <b>{list.length > 1 ? `${list.length} problems` : ISSUE_TITLES[worst.kind] ?? 'Problem'}{name ? ` on ${name}` : ''}</b>
+          {list.length ? (
+            <ul>
+              {list.map((i) => (
+                <li key={i.id}>
+                  <span className="issue-swatch" data-kind={i.kind} />
+                  {i.message}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>{ISSUE_TITLES[worst.kind] ?? 'Problem'} here. Turn on the print overlay (P) to see where.</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Overlay({ c }: { c: ThemeColors }) {
   const bodies = useAnalysis((s) => s.bodies)
   const analysis = useAnalysis((s) => s.analysis)
@@ -166,8 +200,8 @@ function Overlay({ c }: { c: ThemeColors }) {
         <mesh key={m.id} geometry={m.g} material={material} renderOrder={5} raycast={() => null} />
       ))}
       {worst && (
-        <Html position={worst.point} center zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-          <div className="issue-dot" style={{ background: dotColor }} />
+        <Html position={worst.point} center zIndexRange={[10, 0]}>
+          <IssueDot color={dotColor} worst={worst} issues={analysis?.issues ?? []} />
         </Html>
       )}
     </group>
@@ -456,7 +490,7 @@ export function Viewport() {
       {measuring && <MeasureLayer c={c} />}
       {single && <SizeTags id={single} />}
       {single && <FitTag id={single} />}
-      <OrbitControls makeDefault enableDamping dampingFactor={0.12} target={[0, 0, 10]} maxPolarAngle={Math.PI * 0.95} />
+      <OrbitControls makeDefault enableDamping dampingFactor={0.12} target={[0, 0, 10]} minPolarAngle={0} maxPolarAngle={Math.PI} />
       <CameraRig />
       <ViewCameraTracker />
     </Canvas>
