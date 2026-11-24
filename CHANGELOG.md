@@ -4,6 +4,12 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.13.0 — 2026-11-24
+
+- Arrow keys now move parts the way you're looking. Up moves away from you, Left and Right move left and right on screen, from any camera angle.
+- The Align buttons follow the camera too: Left, Right, Front and Back are as you see them
+- Both snap to the closest bed direction, so parts still move straight along the grid
+
 ## 0.12.0 — 2026-11-24
 
 - Linear pattern. Select a part and pick Pattern, then Linear in the inspector to copy it in a row, or in a grid with rows going back.

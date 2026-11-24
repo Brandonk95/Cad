@@ -4,6 +4,7 @@ import { holeIsSideways, isRoundHole, solidWorldBox } from '../model/geometry'
 import { canOpen, DEFAULT_FLOOR, DEFAULT_WALL, EDGE_KINDS, hasFloor, HOLLOW_KINDS, ROUND_SIDES, SIDED_KINDS } from '../model/details'
 import { findHub, findNode, mapNodes, type PatternOpts } from '../model/ops'
 import { usePatternPreview } from '../viewport/pattern'
+import { viewAxes } from '../viewport/viewDir'
 import { FIT_CLASSES, wallMin, type Clearances, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
 import { beginScrub, endScrub, useEditor, usePrintContext } from '../store/editor'
 import { I } from './Icons'
@@ -404,25 +405,34 @@ function ColorPicker({ n }: { n: SceneNode }) {
   )
 }
 
-const ALIGN_ROWS: { axis: 0 | 1 | 2; title: string; labels: [string, string, string] }[] = [
-  { axis: 0, title: 'Left to right', labels: ['Left', 'Center', 'Right'] },
-  { axis: 1, title: 'Front to back', labels: ['Front', 'Middle', 'Back'] },
-  { axis: 2, title: 'Up and down', labels: ['Bottom', 'Middle', 'Top'] },
+const ALIGN_ROWS: { row: 'right' | 'forward' | 'up'; title: string; labels: [string, string, string] }[] = [
+  { row: 'right', title: 'Left to right', labels: ['Left', 'Center', 'Right'] },
+  { row: 'forward', title: 'Front to back', labels: ['Front', 'Middle', 'Back'] },
+  { row: 'up', title: 'Up and down', labels: ['Bottom', 'Middle', 'Top'] },
 ]
 
-/** Tinkercad-style align: line parts up against the selection's overall bounds. */
+/**
+ * Tinkercad-style align: line parts up against the selection's overall bounds.
+ * Left, right, front and back are as seen from the camera, snapped to the bed axes.
+ */
 function AlignSection() {
   const align = useEditor((s) => s.alignSelected)
-  const to = ['min', 'center', 'max'] as const
+  const run = (row: (typeof ALIGN_ROWS)[number]['row'], i: number, label: string) => {
+    if (row === 'up') return align([2], (['min', 'center', 'max'] as const)[i], `Align ${label.toLowerCase()}`)
+    const d = viewAxes()[row]
+    // i = 0 is the near / left end. On an axis pointing the other way that is its max.
+    const to = i === 1 ? 'center' : (i === 0) === (d.sign > 0) ? 'min' : 'max'
+    align([d.axis], to, `Align ${label.toLowerCase()}`)
+  }
   return (
     <div className="section" data-tour="align">
       <h4>Align</h4>
       {ALIGN_ROWS.map((r) => (
-        <div key={r.axis} className="align-row">
+        <div key={r.row} className="align-row">
           <span className="align-label">{r.title}</span>
           <div className="seg" role="group" aria-label={`Align ${r.title.toLowerCase()}`}>
             {r.labels.map((l, i) => (
-              <button key={l} onClick={() => align([r.axis], to[i])} title={`Line up the ${to[i] === 'center' ? 'centers' : l.toLowerCase() + ' sides'} of the selected parts`}>
+              <button key={l} onClick={() => run(r.row, i, l)} title={`Line up the ${i === 1 ? 'centers' : l.toLowerCase() + ' sides'} of the selected parts, as seen from the camera`}>
                 {l}
               </button>
             ))}

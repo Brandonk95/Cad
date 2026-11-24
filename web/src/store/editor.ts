@@ -85,7 +85,7 @@ interface EditorState {
   scaleSelected: (f: Vec3) => void
   nudge: (dx: number, dy: number, dz: number) => void
   /** Line the selected parts up along world axes against the selection's overall bounds. */
-  alignSelected: (axes: (0 | 1 | 2)[], to: 'min' | 'center' | 'max') => void
+  alignSelected: (axes: (0 | 1 | 2)[], to: 'min' | 'center' | 'max', label?: string) => void
   /** Copy the selection in a circle or in rows. With `hub`, the result is combined into that part. */
   patternSelected: (o: PatternOpts, hub?: string | null) => void
   applyFix: (fix: Fix) => void
@@ -285,7 +285,7 @@ export const useEditor = create<EditorState>((set, get) => {
         nodes = mapNodes(nodes, id, (n) => ({ ...n, position: [round(n.position[0] + dx), round(n.position[1] + dy), round(n.position[2] + dz)] }))
       commitWith('Move', 'move', nodes)
     },
-    alignSelected: (axes, to) => {
+    alignSelected: (axes, to, label) => {
       const sel = topLevel()
       if (sel.length < 2) return get().toast('Select two or more parts to align. Shift-click adds to the selection.', 'info')
       const boxes = new Map(sel.map((id) => [id, solidWorldBox(findNode(get().nodes, id)!, clr())]))
@@ -307,7 +307,7 @@ export const useEditor = create<EditorState>((set, get) => {
         { min: 'front', center: 'middle', max: 'back' },
         { min: 'bottom', center: 'middle', max: 'top' },
       ]
-      commitWith(axes.length > 1 ? 'Center on each other' : `Align ${names[axes[0]][to]}`, 'move', nodes)
+      commitWith(label ?? (axes.length > 1 ? 'Center on each other' : `Align ${names[axes[0]][to]}`), 'move', nodes)
     },
 
     patternSelected: (o, hub) => {

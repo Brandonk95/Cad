@@ -5,6 +5,7 @@ import { Edges, Html, Line, OrbitControls, TransformControls } from '@react-thre
 import { buildShapeGeometries, groupGeometry, nodeWorldBox, solidWorldBox, featureEdges } from '../model/geometry'
 import { patternCopies, findNode, mapNodes, round } from '../model/ops'
 import { usePatternPreview } from './pattern'
+import { setViewCamera } from './viewDir'
 import { clearSnapGuides, freeMove, snapMove, useSnapGuides, type SnapTarget } from './snap'
 import type { Clearances, SceneNode, Vec3 } from '../model/types'
 import { contextOf, useEditor, usePrintContext } from '../store/editor'
@@ -334,6 +335,16 @@ function SnapGuides({ c }: { c: ThemeColors }) {
 
 let pendingFrame: THREE.Box3 | null = null
 
+/** Lets arrow keys and align buttons read where the camera is looking. */
+function ViewCameraTracker() {
+  const camera = useThree((s) => s.camera)
+  useEffect(() => {
+    setViewCamera(camera)
+    return () => setViewCamera(null)
+  }, [camera])
+  return null
+}
+
 function CameraRig() {
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update: () => void } | null
   const camera = useThree((s) => s.camera)
@@ -439,6 +450,7 @@ export function Viewport() {
       {single && <FitTag id={single} />}
       <OrbitControls makeDefault enableDamping dampingFactor={0.12} target={[0, 0, 10]} maxPolarAngle={Math.PI * 0.95} />
       <CameraRig />
+      <ViewCameraTracker />
     </Canvas>
   )
 }

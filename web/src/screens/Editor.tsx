@@ -16,6 +16,7 @@ import { ALL_TEMPLATES } from '../model/catalog'
 import { TourOverlay } from '../tour/TourOverlay'
 import { useTour } from '../tour/tour'
 import { SKETCH_TOOLS, useSketch } from '../sketch/store'
+import { viewMove } from '../viewport/viewDir'
 
 const KEY_TO_KIND = Object.fromEntries(ALL_TEMPLATES.map((t) => [t.key.toLowerCase(), t.kind]))
 
@@ -49,14 +50,15 @@ function useShortcuts() {
           return s.removeSelected()
         case 'Escape':
           return s.select([])
+        // Arrows move along the bed axis closest to that direction on screen.
         case 'ArrowLeft':
-          return e.preventDefault(), s.nudge(-step, 0, 0)
+          return e.preventDefault(), s.nudge(...viewMove(-step, 0), 0)
         case 'ArrowRight':
-          return e.preventDefault(), s.nudge(step, 0, 0)
+          return e.preventDefault(), s.nudge(...viewMove(step, 0), 0)
         case 'ArrowUp':
-          return e.preventDefault(), s.nudge(0, step, 0)
+          return e.preventDefault(), s.nudge(...viewMove(0, step), 0)
         case 'ArrowDown':
-          return e.preventDefault(), s.nudge(0, -step, 0)
+          return e.preventDefault(), s.nudge(...viewMove(0, -step), 0)
         case 'PageUp':
           return e.preventDefault(), s.nudge(0, 0, step)
         case 'PageDown':
