@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ALL_TEMPLATES, FALLBACK_MATERIALS, PRINTER_PRESETS, uid } from '../model/catalog'
-import { combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round } from '../model/ops'
+import { circularCopies, type CircularPatternOpts, combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round } from '../model/ops'
 import { useSketch } from '../sketch/store'
 import { nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { DEFAULT_CLEARANCES, type Clearances, type Material, type PrintContext, type PrinterProfile, type SceneNode, type ShapeKind, type ShapeNode, type Vec3 } from '../model/types'
@@ -20,7 +20,7 @@ export const endScrub = () => {
   scrub.started = false
 }
 
-export type HistoryIcon = ShapeKind | 'group' | 'ungroup' | 'move' | 'rotate' | 'size' | 'delete' | 'fix' | 'start' | 'hole' | 'color' | 'duplicate' | 'orient' | 'sketch'
+export type HistoryIcon = ShapeKind | 'group' | 'ungroup' | 'move' | 'rotate' | 'size' | 'delete' | 'fix' | 'start' | 'hole' | 'color' | 'duplicate' | 'orient' | 'sketch' | 'pattern'
 
 export interface HistoryEntry {
   label: string
@@ -86,6 +86,8 @@ interface EditorState {
   nudge: (dx: number, dy: number, dz: number) => void
   /** Line the selected parts up along world axes against the selection's overall bounds. */
   alignSelected: (axes: (0 | 1 | 2)[], to: 'min' | 'center' | 'max') => void
+  /** Copy the selection around a circle. With `hub`, the result is combined into that part. */
+  patternSelected: (o: CircularPatternOpts, hub?: string | null) => void
   applyFix: (fix: Fix) => void
 
   setMode: (m: Mode) => void
@@ -306,6 +308,24 @@ export const useEditor = create<EditorState>((set, get) => {
         { min: 'bottom', center: 'middle', max: 'top' },
       ]
       commitWith(axes.length > 1 ? 'Center on each other' : `Align ${names[axes[0]][to]}`, 'move', nodes)
+    },
+
+    patternSelected: (o, hub) => {
+      const sel = topLevel()
+      if (!sel.length || o.count < 2) return
+      const copies = circularCopies(get().nodes, sel, o)
+      let nodes = [...get().nodes, ...copies]
+      let selection = [...sel, ...copies.map((c) => c.id)]
+      const host = hub ? nodes.find((n) => n.id === hub) : undefined
+      if (host) {
+        const r = combine(nodes, [host.id, ...selection], clr())
+        if (r.group) {
+          const g = { ...r.group, name: host.name }
+          nodes = r.nodes.map((n) => (n.id === g.id ? g : n))
+          selection = [g.id]
+        }
+      }
+      commitWith(`Circular pattern ×${Math.round(o.count)}`, 'pattern', nodes, selection)
     },
 
     applyFix: (fix) => {

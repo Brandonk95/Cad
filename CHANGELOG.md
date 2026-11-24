@@ -4,6 +4,12 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.11.0 — 2026-11-24
+
+- Circular pattern. Select a part (or several), open Circular pattern in the inspector, and set the count and angle. A preview shows the copies before you make them.
+- Patterns turn around the part they sit on, like holes around a hub, and can combine with it in one step to cut the holes
+- Set the center X and Y to turn around any other point, or use an angle under 360° for an arc
+
 ## 0.10.0 — 2026-11-24
 
 - Sketch mode is here. Draw a rectangle (R), circle (C) or any outline with the line tool (L) on the bed or on top of a part.

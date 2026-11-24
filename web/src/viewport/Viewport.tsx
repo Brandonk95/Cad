@@ -3,7 +3,8 @@ import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Edges, Html, Line, OrbitControls, TransformControls } from '@react-three/drei'
 import { buildShapeGeometries, groupGeometry, nodeWorldBox, solidWorldBox, featureEdges } from '../model/geometry'
-import { findNode, mapNodes, round } from '../model/ops'
+import { circularCopies, findNode, mapNodes, round } from '../model/ops'
+import { usePatternPreview } from './pattern'
 import { clearSnapGuides, freeMove, snapMove, useSnapGuides, type SnapTarget } from './snap'
 import type { Clearances, SceneNode, Vec3 } from '../model/types'
 import { contextOf, useEditor, usePrintContext } from '../store/editor'
@@ -267,6 +268,52 @@ function Gizmo({ id }: { id: string }) {
   )
 }
 
+/** Ghost copies and the circle while a circular pattern is being set up. */
+function PatternGhosts({ c, clr }: { c: ThemeColors; clr: Clearances }) {
+  const opts = usePatternPreview((s) => s.opts)
+  const nodes = useEditor((s) => s.nodes)
+  const selection = useEditor((s) => s.selection)
+  const ghosts = useMemo(() => {
+    if (!opts) return []
+    return circularCopies(nodes, selection, opts).map((n) => ({
+      n,
+      geos: n.type === 'group' ? [groupGeometry(n, clr)].filter(Boolean) as THREE.BufferGeometry[] : buildShapeGeometries(n, clr),
+    }))
+  }, [opts, nodes, selection, clr])
+  const ring = useMemo(() => {
+    if (!opts) return null
+    const picked = nodes.filter((n) => selection.includes(n.id))
+    if (!picked.length) return null
+    const box = new THREE.Box3()
+    for (const n of picked) box.union(solidWorldBox(n, clr))
+    const mid = box.getCenter(new THREE.Vector3())
+    const r = Math.hypot(mid.x - opts.center[0], mid.y - opts.center[1])
+    const z = box.min.z + 0.05
+    const pts: Vec3[] = []
+    for (let i = 0; i <= 96; i++) pts.push([opts.center[0] + r * Math.cos((i / 96) * Math.PI * 2), opts.center[1] + r * Math.sin((i / 96) * Math.PI * 2), z])
+    return { pts, z, r }
+  }, [opts, nodes, selection, clr])
+  if (!opts) return null
+  const [cx, cy] = opts.center
+  const arm = Math.max(3, (ring?.r ?? 10) * 0.12)
+  const z = ring?.z ?? 0.05
+  return (
+    <group>
+      {ghosts.map(({ n, geos }) => (
+        <group key={n.id} position={n.position} rotation={[n.rotation[0] * DEG, n.rotation[1] * DEG, n.rotation[2] * DEG]}>
+          {geos.map((g, i) => (
+            <mesh key={i} geometry={g} renderOrder={4} raycast={() => null}>
+              <meshStandardMaterial color={c.accent} transparent opacity={0.35} depthWrite={false} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+      {ring && ring.r > 0.01 && <Line points={ring.pts} color={c.accent} lineWidth={1} dashed dashSize={2} gapSize={2} depthTest={false} renderOrder={20} />}
+      <Line points={[[cx - arm, cy, z], [cx + arm, cy, z], [cx, cy - arm, z], [cx, cy + arm, z]]} segments color={c.accent} lineWidth={2} depthTest={false} renderOrder={21} />
+    </group>
+  )
+}
+
 function SnapGuides({ c }: { c: ThemeColors }) {
   const segs = useSnapGuides((s) => s.segs)
   const label = useSnapGuides((s) => s.label)
@@ -386,6 +433,7 @@ export function Viewport() {
       {overlay && <Overlay c={c} />}
       {single && <Gizmo id={single} />}
       <SnapGuides c={c} />
+      <PatternGhosts c={c} clr={ctx.clearances} />
       {drawing && <SketchLayer c={c} />}
       {single && <SizeTags id={single} />}
       {single && <FitTag id={single} />}

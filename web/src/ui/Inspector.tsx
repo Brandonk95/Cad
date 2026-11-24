@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { FILAMENT_COLORS, MAGNETS, SCREW_SIZES, SCREW_TYPES, SCREWS, screwHoleSize } from '../model/catalog'
 import { holeIsSideways, isRoundHole, solidWorldBox } from '../model/geometry'
 import { canOpen, DEFAULT_FLOOR, DEFAULT_WALL, EDGE_KINDS, hasFloor, HOLLOW_KINDS, ROUND_SIDES, SIDED_KINDS } from '../model/details'
-import { findNode, mapNodes } from '../model/ops'
+import { findHub, findNode, mapNodes } from '../model/ops'
+import { usePatternPreview } from '../viewport/pattern'
 import { FIT_CLASSES, wallMin, type Clearances, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
 import { beginScrub, endScrub, useEditor, usePrintContext } from '../store/editor'
 import { I } from './Icons'
@@ -435,6 +436,81 @@ function AlignSection() {
   )
 }
 
+/** Circular pattern: copies of the selection around a center, previewed live. */
+function PatternSection() {
+  const selection = useEditor((s) => s.selection)
+  const pattern = useEditor((s) => s.patternSelected)
+  const ctx = usePrintContext()
+  const [open, setOpen] = useState(false)
+  const [count, setCount] = useState(6)
+  const [angle, setAngle] = useState(360)
+  const [center, setCenter] = useState<[number, number]>([0, 0])
+  const [hub, setHub] = useState<{ id: string; name: string } | null>(null)
+  const [join, setJoin] = useState(true)
+  const key = selection.join(',')
+
+  // Start from the part the selection sits on (a hub or plate), else the bed center.
+  const start = () => {
+    const s = useEditor.getState()
+    const h = findHub(s.nodes, s.selection, ctx.clearances)
+    if (h) {
+      const b = solidWorldBox(h, ctx.clearances)
+      setCenter([Math.round(((b.min.x + b.max.x) / 2) * 1000) / 1000, Math.round(((b.min.y + b.max.y) / 2) * 1000) / 1000])
+      setHub({ id: h.id, name: h.name })
+      setJoin(true)
+    } else {
+      setCenter([0, 0])
+      setHub(null)
+    }
+    setOpen(true)
+  }
+
+  // A new selection closes the panel.
+  useEffect(() => setOpen(false), [key])
+  useEffect(() => {
+    usePatternPreview.setState({ opts: open ? { count, angle, center } : null })
+  }, [open, count, angle, center])
+  useEffect(() => () => usePatternPreview.setState({ opts: null }), [])
+
+  if (!open)
+    return (
+      <div className="section">
+        <button className="btn" style={{ width: '100%' }} onClick={start} title="Copy the selection around a circle">
+          <I.pattern size={16} /> Circular pattern
+        </button>
+      </div>
+    )
+  const full = Math.abs(angle) >= 360
+  return (
+    <div className="section pattern">
+      <h4>Circular pattern</h4>
+      <div className="dims two">
+        <Num label="Count" unit="" step={1} value={count} onChange={(v) => setCount(Math.max(2, Math.min(360, Math.round(v))))} />
+        <Num label="Angle" unit="°" step={5} value={angle} onChange={(v) => setAngle(Math.max(-360, Math.min(360, v)) || 360)} />
+      </div>
+      <p className="note">{full ? `${count} copies spread evenly, ${Math.round((3600 / count)) / 10}° apart.` : `${count} copies over ${angle}°, ${Math.round((angle / (count - 1)) * 10) / 10}° apart.`}</p>
+      <h4>Center</h4>
+      <div className="dims two">
+        <Num label="X" value={center[0]} onChange={(v) => setCenter([v, center[1]])} />
+        <Num label="Y" value={center[1]} onChange={(v) => setCenter([center[0], v])} />
+      </div>
+      <p className="note">{hub ? `Turning around the center of ${hub.name}.` : 'Turning around the bed center. Set X and Y to turn around another point.'}</p>
+      {hub && (
+        <label className="check">
+          <input type="checkbox" checked={join} onChange={(e) => setJoin(e.target.checked)} /> Combine with {hub.name}
+        </label>
+      )}
+      <div className="row">
+        <button className="btn primary" onClick={() => {
+          pattern({ count, angle, center }, hub && join ? hub.id : null)
+          setOpen(false)
+        }}><I.pattern size={16} /> Make {count - 1} {count - 1 === 1 ? 'copy' : 'copies'}</button>
+        <button className="btn" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
+    </div>
+  )
+}
+
 export function Inspector() {
   const selection = useEditor((s) => s.selection)
   const nodes = useEditor((s) => s.nodes)
@@ -459,6 +535,7 @@ export function Inspector() {
               <button className="btn danger" onClick={remove} aria-label="Delete"><I.delete size={16} /></button>
             </div>
             <AlignSection />
+            <PatternSection />
           </>
         )}
         {n && (
@@ -488,6 +565,7 @@ export function Inspector() {
               </div>
             )}
             <Transform n={n} />
+            <PatternSection />
             {(n.type === 'group' || !n.hole) && <ColorPicker n={n} />}
             <div className="section">
               <h4>Printing</h4>

@@ -459,3 +459,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   padding: 2px 6px; border-radius: var(--radius-tag); background: var(--accent); color: #fff;
 }
 .shell:has(.inspector.open) .sketch-hint { left: calc(50% - 156px); max-width: calc(100% - 452px); }
+
+/* Circular pattern */
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0 8px; cursor: pointer; }
+.check input { accent-color: var(--accent); }

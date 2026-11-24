@@ -184,3 +184,60 @@ export function scaleNode(n: SceneNode, f: Vec3, clr: Clearances): SceneNode {
   const dz = before.min.z - after.min.z
   return { ...scaled, position: [scaled.position[0], scaled.position[1], round(scaled.position[2] + dz)] }
 }
+
+export interface CircularPatternOpts {
+  /** Total number of items, including the original */
+  count: number
+  /** Total sweep in degrees. 360 spreads the items evenly around the full circle. */
+  angle: number
+  /** Center of the circle on the bed (world X, Y) */
+  center: [number, number]
+}
+
+/** Angle of copy k (1..count-1) in degrees. A full circle doesn't put the last copy on top of the first. */
+export const patternAngle = (k: number, o: CircularPatternOpts) =>
+  Math.abs(o.angle) >= 360 ? (360 * k) / o.count : o.count > 1 ? (o.angle * k) / (o.count - 1) : 0
+
+/**
+ * Copies of the given top-level nodes, rotated about a vertical axis through
+ * `center`. Each copy also turns with the circle, like spokes on a wheel.
+ */
+export function circularCopies(nodes: SceneNode[], ids: string[], o: CircularPatternOpts): SceneNode[] {
+  const picked = nodes.filter((n) => ids.includes(n.id))
+  const out: SceneNode[] = []
+  const count = Math.max(1, Math.min(360, Math.round(o.count)))
+  for (let k = 1; k < count; k++) {
+    const deg = patternAngle(k, { ...o, count })
+    const t = (deg * Math.PI) / 180
+    const c = Math.cos(t)
+    const s = Math.sin(t)
+    for (const n of picked) {
+      const dx = n.position[0] - o.center[0]
+      const dy = n.position[1] - o.center[1]
+      const turned = rotateWorld(cloneWithNewIds(n), 'z', deg)
+      out.push({ ...turned, position: [round(o.center[0] + dx * c - dy * s), round(o.center[1] + dx * s + dy * c), n.position[2]] })
+    }
+  }
+  return out
+}
+
+/**
+ * The part the selection sits on or in (a hub or plate), if any: the smallest
+ * other solid whose footprint contains the selection's center. Patterns
+ * default to turning around its center.
+ */
+export function findHub(nodes: SceneNode[], ids: string[], clr: Clearances): SceneNode | null {
+  const sel = new THREE.Box3()
+  for (const n of nodes) if (ids.includes(n.id)) sel.union(solidWorldBox(n, clr))
+  if (sel.isEmpty()) return null
+  const c = sel.getCenter(new THREE.Vector3())
+  let best: { n: SceneNode; area: number } | null = null
+  for (const n of nodes) {
+    if (ids.includes(n.id) || (n.type === 'shape' && n.hole)) continue
+    const b = solidWorldBox(n, clr)
+    if (c.x < b.min.x || c.x > b.max.x || c.y < b.min.y || c.y > b.max.y) continue
+    const area = (b.max.x - b.min.x) * (b.max.y - b.min.y)
+    if (!best || area < best.area) best = { n, area }
+  }
+  return best?.n ?? null
+}
