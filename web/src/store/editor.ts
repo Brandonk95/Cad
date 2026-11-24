@@ -2,8 +2,9 @@ import { create } from 'zustand'
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ALL_TEMPLATES, FALLBACK_MATERIALS, PRINTER_PRESETS, uid } from '../model/catalog'
-import { patternCopies, type PatternOpts, combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round } from '../model/ops'
+import { patternCopies, type PatternOpts, combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round, mirrorWorld } from '../model/ops'
 import { useSketch } from '../sketch/store'
+import { useMeasure } from '../viewport/measure'
 import { nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { DEFAULT_CLEARANCES, type Clearances, type Material, type PrintContext, type PrinterProfile, type SceneNode, type ShapeKind, type ShapeNode, type Vec3 } from '../model/types'
 import type { Calibration } from '../lib/pb'
@@ -20,7 +21,7 @@ export const endScrub = () => {
   scrub.started = false
 }
 
-export type HistoryIcon = ShapeKind | 'group' | 'ungroup' | 'move' | 'rotate' | 'size' | 'delete' | 'fix' | 'start' | 'hole' | 'color' | 'duplicate' | 'orient' | 'sketch' | 'pattern'
+export type HistoryIcon = ShapeKind | 'group' | 'ungroup' | 'move' | 'rotate' | 'size' | 'delete' | 'fix' | 'start' | 'hole' | 'color' | 'duplicate' | 'orient' | 'sketch' | 'pattern' | 'mirror'
 
 export interface HistoryEntry {
   label: string
@@ -88,6 +89,8 @@ interface EditorState {
   alignSelected: (axes: (0 | 1 | 2)[], to: 'min' | 'center' | 'max', label?: string) => void
   /** Copy the selection in a circle or in rows. With `hub`, the result is combined into that part. */
   patternSelected: (o: PatternOpts, hub?: string | null) => void
+  /** Mirror across a bed axis. `copy` keeps the original and puts the mirror image beside it on side `side`. */
+  mirrorSelected: (axis: 0 | 1 | 2, copy: boolean, side?: 1 | -1) => void
   applyFix: (fix: Fix) => void
 
   setMode: (m: Mode) => void
@@ -310,6 +313,20 @@ export const useEditor = create<EditorState>((set, get) => {
       commitWith(label ?? (axes.length > 1 ? 'Center on each other' : `Align ${names[axes[0]][to]}`), 'move', nodes)
     },
 
+    mirrorSelected: (axis, copy, side = 1) => {
+      const sel = topLevel()
+      if (!sel.length) return
+      const box = new THREE.Box3()
+      for (const id of sel) box.union(solidWorldBox(findNode(get().nodes, id)!, clr()))
+      // In place: flip about the middle. As a copy: flip about the far edge so the two touch.
+      const at = copy ? (side > 0 ? box.max : box.min).getComponent(axis) : box.getCenter(new THREE.Vector3()).getComponent(axis)
+      const what = ['left to right', 'front to back', 'upside down'][axis]
+      if (copy) {
+        const made = get().nodes.filter((n) => sel.includes(n.id)).map((n) => mirrorWorld(cloneWithNewIds(n), axis, at))
+        return commitWith(`Mirror copy ${what}`, 'mirror', [...get().nodes, ...made], made.map((n) => n.id))
+      }
+      commitWith(`Mirror ${what}`, 'mirror', get().nodes.map((n) => (sel.includes(n.id) ? mirrorWorld(n, axis, at) : n)))
+    },
     patternSelected: (o, hub) => {
       const sel = topLevel()
       if (!sel.length) return
@@ -366,6 +383,7 @@ export const useEditor = create<EditorState>((set, get) => {
       if (mode === get().mode) return
       // Sketch mode opens with the rectangle tool ready; drawing doesn't use the selection.
       if (mode === 'sketch') {
+        useMeasure.getState().setOn(false)
         useSketch.getState().setTool('rect')
         return set({ mode, selection: [] })
       }

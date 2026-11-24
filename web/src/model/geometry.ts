@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { Brush, Evaluator, ADDITION, SUBTRACTION } from 'three-bvh-csg'
 import { SCREWS } from './catalog'
 import { detailedGeometry } from './details'
+import { unitTextGeometry } from './text'
 import type { Clearances, GroupNode, SceneNode, ShapeNode, Vec3 } from './types'
 
 const DEG = Math.PI / 180
@@ -130,6 +131,9 @@ export function buildShapeGeometries(n: ShapeNode, clr: Clearances, parentQuat =
         g = extrudeZ(new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))), 12)
         break
       }
+      case 'text':
+        g = unitTextGeometry(n.params.text ?? '', n.params.flipX) ?? new THREE.BoxGeometry(1, 1, 1)
+        break
       case 'screwHole': {
         if (n.params.screwType === 'nut') {
           const s = SCREWS[n.params.screwSize ?? 'M3']

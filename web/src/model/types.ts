@@ -18,6 +18,8 @@ export type ShapeKind =
   | 'pin'
   /** Closed outline drawn in Sketch mode, pulled straight up */
   | 'extrude'
+  /** Raised letters, or engraved ones as a hole */
+  | 'text'
 
 export type ScrewSize = 'M2' | 'M2.5' | 'M3' | 'M4' | 'M5' | 'M6' | 'M8'
 export type ScrewType = 'clearance' | 'tapped' | 'insert' | 'nut'
@@ -57,6 +59,10 @@ export interface ShapeParams {
 
   /** Extrude: outline points, scaled so the outline fills -0.5..0.5 on X and Y (counter-clockwise) */
   profile?: [number, number][]
+  /** Text: the letters */
+  text?: string
+  /** Text: drawn mirror-image (set by Mirror) */
+  flipX?: boolean
 }
 
 export interface ShapeNode {

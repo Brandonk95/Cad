@@ -4,6 +4,14 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.15.0 — 2026-11-24
+
+- **Mirror:** flip parts left–right, front–back (as seen from the camera) or top–bottom. Tick "Keep the original" to add the mirror image right beside it.
+- **Text (T):** raised or engraved letters in a bold, print-friendly font. Type in the inspector; the letters keep their height as you edit.
+- **Measure (Q):** click two points to read the distance and its X, Y and Z parts. Snaps to corners and edge middles; Alt places freely.
+- Circular pattern: untick "Turn copies with the circle" to keep every copy facing the same way.
+- Print check no longer reports sharp tips (like the slanted end of a letter) as thin walls.
+
 ## 0.14.0 — 2026-11-24
 
 - Circular pattern: **Center on part** lets you click any part to turn around its center. The center follows that part.

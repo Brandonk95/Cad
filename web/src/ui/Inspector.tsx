@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { FILAMENT_COLORS, MAGNETS, SCREW_SIZES, SCREW_TYPES, SCREWS, screwHoleSize } from '../model/catalog'
+import { textAspect } from '../model/text'
 import { holeIsSideways, isRoundHole, solidWorldBox } from '../model/geometry'
 import { canOpen, DEFAULT_FLOOR, DEFAULT_WALL, EDGE_KINDS, hasFloor, HOLLOW_KINDS, ROUND_SIDES, SIDED_KINDS } from '../model/details'
 import { findHub, findNode, mapNodes, type PatternOpts } from '../model/ops'
@@ -122,6 +123,33 @@ const Vec = ({ v, onChange, unit, labels = ['X', 'Y', 'Z'], min }: { v: Vec3; on
 
 const FIT_LABEL: Record<FitClass, string> = { press: 'Press', snug: 'Snug', slide: 'Slide', loose: 'Loose' }
 
+/** The letters of a text shape. Width follows the new text so letters keep their height. */
+function TextField({ n }: { n: ShapeNode }) {
+  const text = n.params.text ?? ''
+  return (
+    <div className="section">
+      <h4>Text</h4>
+      <input className="input" style={{ width: '100%', fontWeight: 600 }} value={text} aria-label="Text" placeholder="Type letters" maxLength={60} onChange={(e) => {
+        const s = useEditor.getState()
+        const next = e.target.value
+        s.setLive(mapNodes(s.nodes, n.id, (x) => {
+          if (x.type !== 'shape') return x
+          const old = textAspect(x.params.text ?? '')
+          const w = Math.max(0.5, Math.round(((x.size[0] / old) * textAspect(next)) * 100) / 100)
+          return { ...x, size: [w, x.size[1], x.size[2]], params: { ...x.params, text: next } }
+        }))
+      }} onBlur={() => {
+        const s = useEditor.getState()
+        if (s.history[s.cursor].nodes !== s.nodes) s.commit('Edit text', 'text', s.nodes)
+      }} onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+      }} />
+      <p className="note">Raised letters stand on a face; engraved ones are a hole. Sink engraved text into a face by about its height (H) to cut it in, then Combine.</p>
+    </div>
+  )
+}
+
 function ShapeFields({ n }: { n: ShapeNode }) {
   const update = useEditor((s) => s.updateNode)
   const ctx = usePrintContext()
@@ -133,10 +161,12 @@ function ShapeFields({ n }: { n: ShapeNode }) {
     <>
       <div className="section">
         <div className="seg" role="group" aria-label="Solid or hole">
-          <button aria-pressed={!n.hole} onClick={() => set({ hole: false }, 'Solid')}>Solid</button>
-          <button aria-pressed={n.hole} onClick={() => set({ hole: true }, 'Hole')}>Hole</button>
+          <button aria-pressed={!n.hole} onClick={() => set({ hole: false }, 'Solid')}>{n.kind === 'text' ? 'Raised' : 'Solid'}</button>
+          <button aria-pressed={n.hole} onClick={() => set({ hole: true }, 'Hole')}>{n.kind === 'text' ? 'Engraved' : 'Hole'}</button>
         </div>
       </div>
+
+      {n.kind === 'text' && <TextField n={n} />}
 
       {n.kind === 'screwHole' && (
         <div className="section">
@@ -446,6 +476,30 @@ function AlignSection() {
   )
 }
 
+/** Flip the selection, as seen from the camera, in place or as a touching copy. */
+function MirrorSection() {
+  const mirror = useEditor((s) => s.mirrorSelected)
+  const [copy, setCopy] = useState(false)
+  const run = (which: 'right' | 'forward' | 'up') => {
+    if (which === 'up') return mirror(2, copy, 1)
+    const d = viewAxes()[which]
+    mirror(d.axis, copy, d.sign)
+  }
+  return (
+    <div className="section">
+      <h4>Mirror</h4>
+      <div className="seg" role="group" aria-label="Mirror">
+        <button onClick={() => run('right')} title="Flip left to right, as seen from the camera">Left–right</button>
+        <button onClick={() => run('forward')} title="Flip front to back, as seen from the camera">Front–back</button>
+        <button onClick={() => run('up')} title="Flip upside down">Top–bottom</button>
+      </div>
+      <label className="check">
+        <input type="checkbox" checked={copy} onChange={(e) => setCopy(e.target.checked)} /> Keep the original and add the mirror image beside it
+      </label>
+    </div>
+  )
+}
+
 /** Circular and linear patterns: copies of the selection, previewed live. */
 function PatternSection() {
   const selection = useEditor((s) => s.selection)
@@ -459,6 +513,7 @@ function PatternSection() {
   const [spacing, setSpacing] = useState<[number, number]>([25, 25])
   const [hub, setHub] = useState<{ id: string; name: string } | null>(null)
   const [join, setJoin] = useState(true)
+  const [turn, setTurn] = useState(true)
   /** Part the center follows; moving that part moves the center with it. */
   const [centerOn, setCenterOn] = useState<string | null>(null)
   const picking = usePatternPreview((s) => s.onPick !== null)
@@ -526,14 +581,14 @@ function PatternSection() {
   }
 
   const opts: PatternOpts | null =
-    kind === 'circular' ? { kind, count, angle, center: c } : kind === 'linear' ? { kind, count: grid, spacing } : null
+    kind === 'circular' ? { kind, count, angle, center: c, turn } : kind === 'linear' ? { kind, count: grid, spacing } : null
 
   // A new selection closes the panel.
   useEffect(() => setKind(null), [key])
   useEffect(() => {
     usePatternPreview.setState({ opts })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, count, angle, c[0], c[1], grid, spacing])
+  }, [kind, count, angle, c[0], c[1], turn, grid, spacing])
   useEffect(() => () => usePatternPreview.setState({ opts: null, onPick: null }), [])
   // Closing the panel or picking a part that is gone stops picking.
   useEffect(() => {
@@ -589,7 +644,10 @@ function PatternSection() {
             <Num label="Count" unit="" step={1} value={count} onChange={(v) => setCount(clampCount(v, 2))} />
             <Num label="Angle" unit="°" step={5} value={angle} onChange={(v) => setAngle(Math.max(-360, Math.min(360, v)) || 360)} />
           </div>
-          <p className="note">{full ? `${count} copies spread evenly, ${Math.round(3600 / count) / 10}° apart.` : `${count} copies over ${angle}°, ${Math.round((angle / (count - 1)) * 10) / 10}° apart.`}</p>
+          <label className="check">
+            <input type="checkbox" checked={turn} onChange={(e) => setTurn(e.target.checked)} /> Turn copies with the circle
+          </label>
+          <p className="note">{turn ? '' : 'Copies keep facing the same way, like bolts on a flange. '}{full ? `${count} copies spread evenly, ${Math.round(3600 / count) / 10}° apart.` : `${count} copies over ${angle}°, ${Math.round((angle / (count - 1)) * 10) / 10}° apart.`}</p>
           <h4>Center</h4>
           <button className={`btn${picking ? ' primary' : ''}`} style={{ width: '100%' }} aria-pressed={picking} onClick={() => (picking ? usePatternPreview.setState({ onPick: null }) : pickCenter())} title="Click a part on the canvas to turn around its center">
             <I.pointer size={16} /> {picking ? 'Click a part… (Esc to cancel)' : 'Center on part'}
@@ -659,6 +717,7 @@ export function Inspector() {
               <button className="btn danger" onClick={remove} aria-label="Delete"><I.delete size={16} /></button>
             </div>
             <AlignSection />
+            <MirrorSection />
             <PatternSection />
           </>
         )}
@@ -677,7 +736,7 @@ export function Inspector() {
               }} />
             </div>
             <div className="row">
-              {n.type === 'group' ? <span className="chip"><I.group size={14} /> {n.children.length} shapes combined</span> : <span className="chip">{n.kind === 'screwHole' || n.kind === 'magnetPocket' || n.kind === 'pin' ? 'Print primitive' : n.kind === 'extrude' ? 'Sketch' : 'Shape'}</span>}
+              {n.type === 'group' ? <span className="chip"><I.group size={14} /> {n.children.length} shapes combined</span> : <span className="chip">{n.kind === 'screwHole' || n.kind === 'magnetPocket' || n.kind === 'pin' ? 'Print primitive' : n.kind === 'extrude' ? 'Sketch' : n.kind === 'text' ? 'Text' : 'Shape'}</span>}
             </div>
             {n.type === 'shape' && <ShapeFields n={n} />}
             {n.type === 'group' && (
@@ -689,6 +748,7 @@ export function Inspector() {
               </div>
             )}
             <Transform n={n} />
+            <MirrorSection />
             <PatternSection />
             {(n.type === 'group' || !n.hole) && <ColorPicker n={n} />}
             <div className="section">

@@ -12,6 +12,7 @@ import { PrintPanel } from '../ui/PrintPanel'
 import { CalibrationWizard, OrientationDialog, PrinterDialog, ShortcutsDialog } from '../ui/Dialogs'
 import { I } from '../ui/Icons'
 import { Viewport, captureThumbnail, frameSelection } from '../viewport/Viewport'
+import { useMeasure } from '../viewport/measure'
 import { ALL_TEMPLATES } from '../model/catalog'
 import { TourOverlay } from '../tour/TourOverlay'
 import { useTour } from '../tour/tour'
@@ -72,6 +73,7 @@ function useShortcuts() {
       if (k === 'h') return s.toggleHole()
       if (k === 'p') return s.toggleOverlay()
       if (k === 'f') return frameSelection()
+      if (k === 'q') return useMeasure.getState().setOn(!useMeasure.getState().on)
       if (k === 'd') return s.dropSelected()
       if (k === 'v') return s.setTransformMode('translate')
       if (k === 'r') return s.setTransformMode('rotate')
@@ -153,6 +155,8 @@ export function Editor({ id }: { id: string }) {
   const tm = useEditor((s) => s.transformMode)
   const mode = useEditor((s) => s.mode)
   const setTm = useEditor((s) => s.setTransformMode)
+  const measuring = useMeasure((s) => s.on)
+  const setMeasuring = useMeasure((s) => s.setOn)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -199,6 +203,7 @@ export function Editor({ id }: { id: string }) {
           <button className="btn ghost icon" aria-pressed={tm === 'rotate'} onClick={() => setTm('rotate')} title="Rotate handles (R)" style={tm === 'rotate' ? { color: 'var(--accent)' } : undefined}><I.rotate /></button>
           <button className="btn ghost icon" aria-pressed={tm === 'scale'} onClick={() => setTm('scale')} title="Scale handles (S)" style={tm === 'scale' ? { color: 'var(--accent)' } : undefined}><I.scale /></button>
           <button className="btn ghost icon" onClick={frameSelection} title="Frame (F)"><I.frame /></button>
+          <button className="btn ghost icon" aria-pressed={measuring} onClick={() => setMeasuring(!measuring)} title="Measure (Q)" style={measuring ? { color: 'var(--accent)' } : undefined}><I.measure /></button>
         </div>
         {projectId === id && nodes.length === 0 && mode !== 'sketch' && (
           <div className="empty-hint">
@@ -207,6 +212,12 @@ export function Editor({ id }: { id: string }) {
           </div>
         )}
         <SketchHint />
+        {measuring && (
+          <div className="sketch-hint below-tools" role="status">
+            <I.measure size={16} />
+            <span>Click two points to measure. Points snap to corners and edge middles; hold Alt to place freely. Esc to finish.</span>
+          </div>
+        )}
         <PrintPanel />
       </main>
       <Inspector />

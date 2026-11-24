@@ -14,6 +14,8 @@ import { makeOverlayMaterial } from './overlayMaterial'
 import { useThemeColors, type ThemeColors } from './theme'
 import { FitTag, SizeTags } from './Tags'
 import { SketchLayer } from '../sketch/SketchLayer'
+import { MeasureLayer } from './MeasureLayer'
+import { useMeasure } from './measure'
 import { useSketch } from '../sketch/store'
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1)
@@ -419,7 +421,9 @@ export function Viewport() {
   const mode = useEditor((s) => s.mode)
   const tool = useSketch((s) => s.tool)
   // Drawing in Sketch mode: clicks place points instead of selecting, and handles hide.
-  const drawing = mode === 'sketch' && tool !== 'select'
+  const measuring = useMeasure((s) => s.on)
+  // Measuring works like drawing: clicks place points, handles and tags hide.
+  const drawing = (mode === 'sketch' && tool !== 'select') || measuring
   const single = !drawing && selection.length === 1 && nodes.some((n) => n.id === selection[0]) ? selection[0] : null
   const bed = ctx.printer.bed
   const camDist = Math.max(bed[0], bed[1]) * 1.1
@@ -448,7 +452,8 @@ export function Viewport() {
       {single && <Gizmo id={single} />}
       <SnapGuides c={c} />
       <PatternGhosts c={c} clr={ctx.clearances} />
-      {drawing && <SketchLayer c={c} />}
+      {drawing && !measuring && <SketchLayer c={c} />}
+      {measuring && <MeasureLayer c={c} />}
       {single && <SizeTags id={single} />}
       {single && <FitTag id={single} />}
       <OrbitControls makeDefault enableDamping dampingFactor={0.12} target={[0, 0, 10]} maxPolarAngle={Math.PI * 0.95} />

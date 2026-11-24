@@ -1,3 +1,4 @@
+import { textAspect } from './text'
 import type { Material, PrinterProfile, ScrewSize, ScrewType, ShapeKind, ShapeNode, Vec3 } from './types'
 
 let counter = 0
@@ -44,6 +45,7 @@ export const screwHoleSize = (size: ScrewSize, type: ScrewType, depth: number): 
 }
 
 const SOLID = '#C9CED6'
+const round1 = (v: number) => Math.round(v * 10) / 10
 
 export interface ShapeTemplate {
   kind: ShapeKind
@@ -59,6 +61,7 @@ export const SHAPES: ShapeTemplate[] = [
   { kind: 'sphere', label: 'Sphere', key: 'O', make: () => ({ type: 'shape', kind: 'sphere', name: 'Sphere', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: {} }) },
   { kind: 'cone', label: 'Cone', key: 'K', make: () => ({ type: 'shape', kind: 'cone', name: 'Cone', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: { segments: 64, topRatio: 0 } }) },
   { kind: 'wedge', label: 'Wedge', key: 'W', make: () => ({ type: 'shape', kind: 'wedge', name: 'Wedge', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: {} }) },
+  { kind: 'text', label: 'Text', key: 'T', make: () => ({ type: 'shape', kind: 'text', name: 'Text', rotation: [0, 0, 0], size: [round1(textAspect('Text') * 10), 10, 2], hole: false, color: SOLID, params: { text: 'Text' } }) },
 ]
 
 export const PRINT_PRIMITIVES: ShapeTemplate[] = [

@@ -466,3 +466,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Picking a part for the pattern center */
 body.picking canvas { cursor: crosshair !important; }
+
+/* Measure */
+.measure-label {
+  transform: translate(-50%, -140%); white-space: nowrap; display: flex; flex-direction: column; align-items: center;
+  font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums;
+  padding: 3px 8px; border-radius: var(--radius-tag); background: var(--accent); color: #fff;
+}
+.measure-label b { font-size: 13px; font-weight: 600; }
+.measure-label span { opacity: 0.85; }
+/* Clear of the view toolbar, which the hint would cover when the inspector is open */
+.sketch-hint.below-tools { top: 64px; }

@@ -306,7 +306,7 @@ export function OrientationDialog() {
 // ---------------------------------------------------------------------------
 
 const KEYS: [string, string][] = [
-  ['B C O K W', 'Box, cylinder, sphere, cone, wedge'],
+  ['B C O K W T', 'Box, cylinder, sphere, cone, wedge, text'],
   ['X M N', 'Screw hole, magnet pocket, pin and hole'],
   ['H', 'Switch solid / hole'],
   ['G / Shift+G', 'Combine / ungroup'],
@@ -320,6 +320,7 @@ const KEYS: [string, string][] = [
   ['Delete', 'Delete selection'],
   ['P', 'Print overlay on / off'],
   ['F', 'Frame selection'],
+  ['Q', 'Measure: click two points (Esc to finish)'],
   ['Ctrl+Z / Ctrl+Shift+Z', 'Undo / redo'],
   ['[', 'Collapse tool shelf'],
   ['Esc', 'Clear selection'],

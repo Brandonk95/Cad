@@ -63,6 +63,9 @@ const n = new THREE.Vector3()
 const ab = new THREE.Vector3()
 const ac = new THREE.Vector3()
 
+/** Opposite sides closer to parallel than about 37° count as a wall. */
+const WALL_FACING = 0.8
+
 /** Per-triangle classification shared by the overlay and orientation scoring. */
 export function classifyTriangles(geo: THREE.BufferGeometry, ctx: PrintContext, withThickness: boolean) {
   const pos = geo.getAttribute('position') as THREE.BufferAttribute
@@ -113,7 +116,9 @@ export function classifyTriangles(geo: THREE.BufferGeometry, ctx: PrintContext, 
       ray.direction.copy(n).negate()
       ray.origin.addScaledVector(ray.direction, 1e-4)
       const hit = bvh.raycastFirst(ray, THREE.DoubleSide)
-      if (hit && hit.distance < minWall) {
+      // A wall has two roughly parallel sides. Faces meeting at a sharp angle are a
+      // pointed tip (a letter's slanted stroke end), which slicers simply round off.
+      if (hit && hit.distance < minWall && hit.face && hit.face.normal.dot(n) < -WALL_FACING) {
         cats[t] = hit.distance < ctx.printer.nozzle ? CAT.tiny : CAT.thin
         if (hit.distance < thinMin) {
           thinMin = hit.distance

@@ -192,6 +192,8 @@ export interface CircularPatternOpts {
   angle: number
   /** Center of the circle on the bed (world X, Y) */
   center: [number, number]
+  /** Copies turn with the circle like spokes (default). Off keeps them facing the same way. */
+  turn?: boolean
 }
 
 /** Angle of copy k (1..count-1) in degrees. A full circle doesn't put the last copy on top of the first. */
@@ -200,7 +202,8 @@ export const patternAngle = (k: number, o: CircularPatternOpts) =>
 
 /**
  * Copies of the given top-level nodes, rotated about a vertical axis through
- * `center`. Each copy also turns with the circle, like spokes on a wheel.
+ * `center`. Each copy also turns with the circle, like spokes on a wheel,
+ * unless `turn` is false.
  */
 export function circularCopies(nodes: SceneNode[], ids: string[], o: CircularPatternOpts): SceneNode[] {
   const picked = nodes.filter((n) => ids.includes(n.id))
@@ -214,7 +217,7 @@ export function circularCopies(nodes: SceneNode[], ids: string[], o: CircularPat
     for (const n of picked) {
       const dx = n.position[0] - o.center[0]
       const dy = n.position[1] - o.center[1]
-      const turned = rotateWorld(cloneWithNewIds(n), 'z', deg)
+      const turned = o.turn === false ? cloneWithNewIds(n) : rotateWorld(cloneWithNewIds(n), 'z', deg)
       out.push({ ...turned, position: [round(o.center[0] + dx * c - dy * s), round(o.center[1] + dx * s + dy * c), n.position[2]] })
     }
   }
@@ -268,4 +271,38 @@ export function findHub(nodes: SceneNode[], ids: string[], clr: Clearances): Sce
     if (!best || area < best.area) best = { n, area }
   }
   return best?.n ?? null
+}
+
+const flipMatrix = (axis: number) => new THREE.Matrix4().makeScale(axis === 0 ? -1 : 1, axis === 1 ? -1 : 1, axis === 2 ? -1 : 1)
+
+/**
+ * Mirror image of a node across the plane through its parent's origin
+ * normal to `axis`. The model has no negative scale, so a mirror is stored as
+ * a turn plus a flip of the shape in its own frame: most shapes look the same
+ * flipped across their own X (box, cylinder, holes), a wedge across its own Y;
+ * outlines and text flip their drawing. Groups mirror each child the same way.
+ */
+export function mirrorLocal(n: SceneNode, axis: number): SceneNode {
+  const own = n.type === 'shape' && n.kind === 'wedge' ? 1 : 0
+  const r = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...(n.rotation.map((v) => v / RAD) as Vec3), 'XYZ'))
+  const m = flipMatrix(axis).multiply(r).multiply(flipMatrix(own))
+  const { rotation } = decompose(m)
+  const position = [...n.position] as Vec3
+  position[axis] = round(-position[axis], 4)
+  if (n.type === 'group') return { ...n, position, rotation, children: n.children.map((c) => mirrorLocal(c, own)) }
+  const params = { ...n.params }
+  if (n.kind === 'extrude' && params.profile) params.profile = params.profile.map(([x, y]) => [round(-x, 4), y] as [number, number]).reverse()
+  if (n.kind === 'text') params.flipX = !params.flipX
+  return { ...n, position, rotation, params }
+}
+
+/**
+ * Mirrors top-level nodes across a world plane at `at` along `axis`
+ * (x' = 2·at − x). Their size and shape are unchanged, only reversed.
+ */
+export function mirrorWorld(n: SceneNode, axis: 0 | 1 | 2, at: number): SceneNode {
+  const m = mirrorLocal(n, axis)
+  const position = [...m.position] as Vec3
+  position[axis] = round(position[axis] + 2 * at)
+  return { ...m, position }
 }
