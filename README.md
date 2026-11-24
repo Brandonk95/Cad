@@ -24,7 +24,7 @@ This is the **MVP loop in Block mode**: set up the printer, calibrate fits, mode
 | Guided tour | Optional for new users: a practice part with coach marks for printer, box, exact sizes, screw hole, combine, print check, fit calibration and export. Waits for you, or "Do it for me". Replay from Keyboard shortcuts (`?`). |
 | UI | Design language tokens (dark default, light theme), Inter + JetBrains Mono self-hosted, 1.5 px icons with the layered-line motif on print primitives, single-key shortcuts (press `?`), reduced motion. |
 
-Sketch and Pro modes are visible in the mode switch but disabled until the next phase.
+Sketch mode draws rectangles, circles and outlines on the bed or on top of a part, then pulls them into a part (or down into a part to cut a hole). Sketches become ordinary shapes, so Block mode can edit them. Pro mode is visible in the mode switch but disabled until a later phase.
 
 ## Run on CasaOS
 
@@ -102,4 +102,5 @@ docker/            entrypoint (migrate, admin upsert, serve)
 - Show face and load direction feeding orientation ranking
 - Plate layout across beds, multi-material painting, resin hollowing
 - Print log, fit reports (Too tight / Good / Too loose) feeding calibration, branches
-- Sketch mode, then Pro mode (feature tree, variables like `clearance_snug`, configurations)
+- Sketch mode next steps: typed dimensions while drawing, arcs, edge fillet and chamfer, editing a sketch after the pull
+- Pro mode (feature tree, variables like `clearance_snug`, configurations)

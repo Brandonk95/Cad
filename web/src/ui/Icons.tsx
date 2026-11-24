@@ -41,6 +41,12 @@ export const I = {
   undo: (p: P) => <Svg {...p}><path d="M7 4.5 3.5 8 7 11.5" /><path d="M3.5 8H12a4.5 4.5 0 0 1 0 9H9" /></Svg>,
   redo: (p: P) => <Svg {...p}><path d="M13 4.5 16.5 8 13 11.5" /><path d="M16.5 8H8a4.5 4.5 0 0 0 0 9h3" /></Svg>,
   // Mode icons: cube (Block), pencil on a plane (Sketch), stacked tree (Pro)
+  extrude: (p: P) => <Svg {...p}><path d="M4 8.5 9 5l7 2.5-2 5H5z" /><path d="M4 8.5V14l1 4h9l2-5.5V7.5M5 12.5V18M14 12.5V18" /></Svg>,
+  pointer: (p: P) => <Svg {...p}><path d="M5 3l10 6.5-4.3 1.2 2.6 5-2 1-2.6-5L5 14.5z" /></Svg>,
+  rect: (p: P) => <Svg {...p}><rect x="3" y="5" width="14" height="10" rx="1" /><circle cx="3" cy="5" r="1.2" fill="currentColor" /><circle cx="17" cy="15" r="1.2" fill="currentColor" /></Svg>,
+  circle: (p: P) => <Svg {...p}><circle cx="10" cy="10" r="7" /><path d="M10 10h7" /><circle cx="10" cy="10" r="1.2" fill="currentColor" /></Svg>,
+  line: (p: P) => <Svg {...p}><path d="M3.5 15.5 7 5l6.5 3 3 8z" /><circle cx="3.5" cy="15.5" r="1.2" fill="currentColor" /><circle cx="7" cy="5" r="1.2" fill="currentColor" /><circle cx="13.5" cy="8" r="1.2" fill="currentColor" /></Svg>,
+  pull: (p: P) => <Svg {...p}><path d="M3 16h14M5 16v-3h10v3M10 11V3M7 6l3-3 3 3" /></Svg>,
   block: (p: P) => <Svg {...p}><path d="M10 2.5 16.5 6v8L10 17.5 3.5 14V6z" /><path d="M3.5 6 10 9.5 16.5 6M10 9.5v8" /></Svg>,
   sketch: (p: P) => <Svg {...p}><path d="M2.5 15.5 6 12.5h11.5L14 15.5z" /><path d="m8 11 6.5-6.5 1.5 1.5L9.5 12.5H8z" /></Svg>,
   pro: (p: P) => <Svg {...p}><rect x="2.5" y="2.5" width="6" height="4" rx="1" /><rect x="11.5" y="8" width="6" height="4" rx="1" /><rect x="11.5" y="13.5" width="6" height="4" rx="1" /><path d="M5.5 6.5V15.5h6M5.5 10h6" /></Svg>,

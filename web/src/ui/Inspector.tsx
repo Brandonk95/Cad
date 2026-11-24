@@ -476,7 +476,7 @@ export function Inspector() {
               }} />
             </div>
             <div className="row">
-              {n.type === 'group' ? <span className="chip"><I.group size={14} /> {n.children.length} shapes combined</span> : <span className="chip">{n.kind === 'screwHole' || n.kind === 'magnetPocket' || n.kind === 'pin' ? 'Print primitive' : 'Shape'}</span>}
+              {n.type === 'group' ? <span className="chip"><I.group size={14} /> {n.children.length} shapes combined</span> : <span className="chip">{n.kind === 'screwHole' || n.kind === 'magnetPocket' || n.kind === 'pin' ? 'Print primitive' : n.kind === 'extrude' ? 'Sketch' : 'Shape'}</span>}
             </div>
             {n.type === 'shape' && <ShapeFields n={n} />}
             {n.type === 'group' && (

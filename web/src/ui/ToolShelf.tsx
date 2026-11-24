@@ -1,6 +1,7 @@
 import { PRINT_PRIMITIVES, SHAPES } from '../model/catalog'
 import { useEditor } from '../store/editor'
 import { I } from './Icons'
+import { SKETCH_TOOLS, useSketch } from '../sketch/store'
 
 export function ToolShelf() {
   const open = useEditor((s) => s.shelfOpen)
@@ -9,9 +10,29 @@ export function ToolShelf() {
   const combine = useEditor((s) => s.combineSelected)
   const toggleHole = useEditor((s) => s.toggleHole)
   const selCount = useEditor((s) => s.selection.length)
+  const mode = useEditor((s) => s.mode)
+  const tool = useSketch((s) => s.tool)
+  const setTool = useSketch((s) => s.setTool)
 
   return (
     <nav className={`shelf${open ? ' open' : ''}`} aria-label="Tools">
+      {mode === 'sketch' ? (
+        <>
+          <h3>Sketch</h3>
+          {SKETCH_TOOLS.map((t) => {
+            const Icon = I[t.icon]
+            return (
+              <button key={t.id} className="tool" aria-pressed={tool === t.id} onClick={() => setTool(t.id)} title={`${t.label} (${t.key})`}>
+                <Icon />
+                <span className="label">{t.label}</span>
+                <kbd>{t.key}</kbd>
+              </button>
+            )
+          })}
+          <p className="shelf-note">Draw on the bed or on top of a part, then pull it up. Pull down into a part to cut a hole.</p>
+        </>
+      ) : (
+        <>
       <h3>Shapes</h3>
       {SHAPES.map((t) => {
         const Icon = I[t.kind as 'box']
@@ -34,6 +55,8 @@ export function ToolShelf() {
           </button>
         )
       })}
+        </>
+      )}
       <h3>Build</h3>
       <button className="tool" onClick={toggleHole} disabled={!selCount} title="Solid / hole (H)">
         <I.hole />

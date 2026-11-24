@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Edges, Html, Line, OrbitControls, TransformControls } from '@react-three/drei'
-import { buildShapeGeometries, groupGeometry, nodeWorldBox, solidWorldBox } from '../model/geometry'
+import { buildShapeGeometries, groupGeometry, nodeWorldBox, solidWorldBox, featureEdges } from '../model/geometry'
 import { findNode, mapNodes, round } from '../model/ops'
 import { clearSnapGuides, freeMove, snapMove, useSnapGuides, type SnapTarget } from './snap'
 import type { Clearances, SceneNode, Vec3 } from '../model/types'
@@ -11,6 +11,8 @@ import { useAnalysis } from '../store/analysis'
 import { makeOverlayMaterial } from './overlayMaterial'
 import { useThemeColors, type ThemeColors } from './theme'
 import { FitTag, SizeTags } from './Tags'
+import { SketchLayer } from '../sketch/SketchLayer'
+import { useSketch } from '../sketch/store'
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1)
 
@@ -62,7 +64,7 @@ function Bed({ size, out, c }: { size: Vec3; out: boolean; c: ThemeColors }) {
 
 // ---------------------------------------------------------------------------
 
-function NodeMesh({ node, selected, clr, c, dim }: { node: SceneNode; selected: boolean; clr: Clearances; c: ThemeColors; dim: boolean }) {
+function NodeMesh({ node, selected, clr, c, dim, pickable }: { node: SceneNode; selected: boolean; clr: Clearances; c: ThemeColors; dim: boolean; pickable: boolean }) {
   const select = useEditor((s) => s.select)
   const geos = useMemo(() => {
     if (node.type === 'group') {
@@ -73,6 +75,8 @@ function NodeMesh({ node, selected, clr, c, dim }: { node: SceneNode; selected: 
   }, [node, clr])
 
   const isHole = node.type === 'shape' && node.hole
+  // Combined parts get their own outline finder; the stock one draws merge seams as lines.
+  const groupOutline = useMemo(() => (node.type === 'group' && selected && geos[0] ? featureEdges(geos[0], 20) : null), [geos, node.type, selected])
   const color = isHole ? c['text-secondary'] : node.color
 
   // Holes inside a selected group are shown as ghosts so you can find them.
@@ -96,6 +100,7 @@ function NodeMesh({ node, selected, clr, c, dim }: { node: SceneNode; selected: 
       position={node.position}
       rotation={[node.rotation[0] * DEG, node.rotation[1] * DEG, node.rotation[2] * DEG]}
       onClick={(e) => {
+        if (!pickable) return
         e.stopPropagation()
         if (Date.now() - lastGizmo < 250) return
         select([node.id], e.shiftKey || e.ctrlKey || e.metaKey)
@@ -113,7 +118,8 @@ function NodeMesh({ node, selected, clr, c, dim }: { node: SceneNode; selected: 
             emissive={selected ? c.accent : '#000000'}
             emissiveIntensity={selected ? 0.12 : 0}
           />
-          {(selected || isHole) && <Edges threshold={20} color={selected ? c.accent : c['text-secondary']} />}
+          {(selected || isHole) && !groupOutline && <Edges threshold={20} color={selected ? c.accent : c['text-secondary']} />}
+          {groupOutline && groupOutline.length > 1 && <Line points={groupOutline} segments color={c.accent} lineWidth={1} />}
         </mesh>
       ))}
       {ghosts.map(({ g, m }, i) => (
@@ -350,7 +356,11 @@ export function Viewport() {
   const overlay = useEditor((s) => s.overlay)
   const ctx = usePrintContext()
   const outOfBed = useAnalysis((s) => s.analysis?.outOfBed ?? false)
-  const single = selection.length === 1 && nodes.some((n) => n.id === selection[0]) ? selection[0] : null
+  const mode = useEditor((s) => s.mode)
+  const tool = useSketch((s) => s.tool)
+  // Drawing in Sketch mode: clicks place points instead of selecting, and handles hide.
+  const drawing = mode === 'sketch' && tool !== 'select'
+  const single = !drawing && selection.length === 1 && nodes.some((n) => n.id === selection[0]) ? selection[0] : null
   const bed = ctx.printer.bed
   const camDist = Math.max(bed[0], bed[1]) * 1.1
 
@@ -361,7 +371,7 @@ export function Viewport() {
       gl={{ antialias: true, preserveDrawingBuffer: true }}
       camera={{ position: [camDist * 0.55, -camDist * 0.85, camDist * 0.62], fov: 40, near: 0.5, far: 20000 }}
       onPointerMissed={() => {
-        if (Date.now() - lastGizmo < 250) return
+        if (drawing || Date.now() - lastGizmo < 250) return
         select([])
       }}
     >
@@ -371,11 +381,12 @@ export function Viewport() {
       <directionalLight position={[-160, 120, 80]} intensity={0.45} />
       <Bed size={bed} out={outOfBed} c={c} />
       {nodes.map((n) => (
-        <NodeMesh key={n.id} node={n} selected={selection.includes(n.id)} clr={ctx.clearances} c={c} dim={false} />
+        <NodeMesh key={n.id} node={n} selected={selection.includes(n.id)} clr={ctx.clearances} c={c} dim={false} pickable={!drawing} />
       ))}
       {overlay && <Overlay c={c} />}
       {single && <Gizmo id={single} />}
       <SnapGuides c={c} />
+      {drawing && <SketchLayer c={c} />}
       {single && <SizeTags id={single} />}
       {single && <FitTag id={single} />}
       <OrbitControls makeDefault enableDamping dampingFactor={0.12} target={[0, 0, 10]} maxPolarAngle={Math.PI * 0.95} />

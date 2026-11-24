@@ -311,6 +311,8 @@ const KEYS: [string, string][] = [
   ['H', 'Switch solid / hole'],
   ['G / Shift+G', 'Combine / ungroup'],
   ['V / R / S', 'Move / rotate / scale handles'],
+  ['Sketch: R C L V', 'Rectangle, circle, line, select'],
+  ['Sketch: Enter / Esc', 'Close the outline or finish the pull / cancel'],
   ['Arrows, PgUp, PgDn', 'Nudge 1 mm (Shift: 10 mm)'],
   ['Alt while dragging', 'Move freely, no snapping to other parts'],
   ['D', 'Drop to bed'],

@@ -9,7 +9,7 @@ import type { Mode } from '../store/editor'
 
 const MODES: { id: Mode; label: string; icon: 'block' | 'sketch' | 'pro'; ready: boolean }[] = [
   { id: 'block', label: 'Block', icon: 'block', ready: true },
-  { id: 'sketch', label: 'Sketch', icon: 'sketch', ready: false },
+  { id: 'sketch', label: 'Sketch', icon: 'sketch', ready: true },
   { id: 'pro', label: 'Pro', icon: 'pro', ready: false },
 ]
 

@@ -27,7 +27,7 @@ export const removeNodes = (nodes: SceneNode[], ids: Set<string>): SceneNode[] =
     .filter((n) => !ids.has(n.id))
     .map((n) => (n.type === 'group' ? { ...n, children: removeNodes(n.children, ids) } : n))
 
-const decompose = (m: THREE.Matrix4): { position: Vec3; rotation: Vec3 } => {
+export const decompose = (m: THREE.Matrix4): { position: Vec3; rotation: Vec3 } => {
   const p = new THREE.Vector3()
   const q = new THREE.Quaternion()
   const s = new THREE.Vector3()

@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ALL_TEMPLATES, FALLBACK_MATERIALS, PRINTER_PRESETS, uid } from '../model/catalog'
 import { combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round } from '../model/ops'
+import { useSketch } from '../sketch/store'
 import { nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { DEFAULT_CLEARANCES, type Clearances, type Material, type PrintContext, type PrinterProfile, type SceneNode, type ShapeKind, type ShapeNode, type Vec3 } from '../model/types'
 import type { Calibration } from '../lib/pb'
@@ -19,7 +20,7 @@ export const endScrub = () => {
   scrub.started = false
 }
 
-export type HistoryIcon = ShapeKind | 'group' | 'ungroup' | 'move' | 'rotate' | 'size' | 'delete' | 'fix' | 'start' | 'hole' | 'color' | 'duplicate' | 'orient'
+export type HistoryIcon = ShapeKind | 'group' | 'ungroup' | 'move' | 'rotate' | 'size' | 'delete' | 'fix' | 'start' | 'hole' | 'color' | 'duplicate' | 'orient' | 'sketch'
 
 export interface HistoryEntry {
   label: string
@@ -340,7 +341,15 @@ export const useEditor = create<EditorState>((set, get) => {
       }
     },
 
-    setMode: (mode) => set({ mode }),
+    setMode: (mode) => {
+      if (mode === get().mode) return
+      // Sketch mode opens with the rectangle tool ready; drawing doesn't use the selection.
+      if (mode === 'sketch') {
+        useSketch.getState().setTool('rect')
+        return set({ mode, selection: [] })
+      }
+      set({ mode })
+    },
     setTheme: (theme) => {
       savePref('theme', theme)
       set({ theme })

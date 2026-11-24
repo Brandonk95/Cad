@@ -15,6 +15,7 @@ import { Viewport, captureThumbnail, frameSelection } from '../viewport/Viewport
 import { ALL_TEMPLATES } from '../model/catalog'
 import { TourOverlay } from '../tour/TourOverlay'
 import { useTour } from '../tour/tour'
+import { SKETCH_TOOLS, useSketch } from '../sketch/store'
 
 const KEY_TO_KIND = Object.fromEntries(ALL_TEMPLATES.map((t) => [t.key.toLowerCase(), t.kind]))
 
@@ -34,6 +35,13 @@ function useShortcuts() {
       if (mod && k === 'd') return e.preventDefault(), s.duplicateSelected()
       if (mod && k === 'a') return e.preventDefault(), s.select(s.nodes.map((n) => n.id))
       if (mod) return
+
+      // Sketch mode: R, C, L and V pick drawing tools instead of the Block shortcuts.
+      if (s.mode === 'sketch') {
+        const t = SKETCH_TOOLS.find((x) => x.key.toLowerCase() === k)
+        if (t) return useSketch.getState().setTool(t.id)
+        if (e.key === 'Escape' && useSketch.getState().tool !== 'select') return useSketch.getState().setTool('select')
+      }
 
       switch (e.key) {
         case 'Delete':
@@ -123,12 +131,25 @@ function useAutosave(projectId: string | null) {
   return state
 }
 
+function SketchHint() {
+  const mode = useEditor((s) => s.mode)
+  const hint = useSketch((s) => s.hint)
+  if (mode !== 'sketch' || !hint) return null
+  return (
+    <div className="sketch-hint" role="status">
+      <I.sketch size={16} />
+      <span>{hint}</span>
+    </div>
+  )
+}
+
 export function Editor({ id }: { id: string }) {
   const projectId = useEditor((s) => s.projectId)
   const nodes = useEditor((s) => s.nodes)
   const dialog = useEditor((s) => s.dialog)
   const orientFor = useEditor((s) => s.orientFor)
   const tm = useEditor((s) => s.transformMode)
+  const mode = useEditor((s) => s.mode)
   const setTm = useEditor((s) => s.setTransformMode)
   const [error, setError] = useState('')
 
@@ -177,12 +198,13 @@ export function Editor({ id }: { id: string }) {
           <button className="btn ghost icon" aria-pressed={tm === 'scale'} onClick={() => setTm('scale')} title="Scale handles (S)" style={tm === 'scale' ? { color: 'var(--accent)' } : undefined}><I.scale /></button>
           <button className="btn ghost icon" onClick={frameSelection} title="Frame (F)"><I.frame /></button>
         </div>
-        {projectId === id && nodes.length === 0 && (
+        {projectId === id && nodes.length === 0 && mode !== 'sketch' && (
           <div className="empty-hint">
             <b>Start with a shape.</b>
             Press B for a box or pick one on the left. Drop a hole into a solid and press G to cut it.
           </div>
         )}
+        <SketchHint />
         <PrintPanel />
       </main>
       <Inspector />

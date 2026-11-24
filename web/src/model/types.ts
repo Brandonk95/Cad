@@ -1,5 +1,6 @@
 // The Stratum document model. One model, three depths: Block mode edits this
-// tree directly; Sketch and Pro (later phases) add feature nodes to the same tree.
+// tree directly. Sketch mode draws outlines that become ordinary shapes (box,
+// cylinder or extrude) in the same tree, so Block mode can edit them too.
 
 export type Vec3 = [number, number, number]
 
@@ -15,6 +16,8 @@ export type ShapeKind =
   | 'screwHole'
   | 'magnetPocket'
   | 'pin'
+  /** Closed outline drawn in Sketch mode, pulled straight up */
+  | 'extrude'
 
 export type ScrewSize = 'M2' | 'M2.5' | 'M3' | 'M4' | 'M5' | 'M6' | 'M8'
 export type ScrewType = 'clearance' | 'tapped' | 'insert' | 'nut'
@@ -51,6 +54,9 @@ export interface ShapeParams {
   floor?: number
   /** Which faces are left open: none, the top, or top and bottom (a tube) */
   opening?: 'closed' | 'top' | 'both'
+
+  /** Extrude: outline points, scaled so the outline fills -0.5..0.5 on X and Y (counter-clockwise) */
+  profile?: [number, number][]
 }
 
 export interface ShapeNode {

@@ -441,3 +441,21 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Align (multi-selection) */
 .align-row { display: grid; grid-template-columns: 84px 1fr; align-items: center; gap: 8px; margin-top: 6px; }
 .align-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+
+/* Sketch mode */
+.shelf .tool[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent); }
+.shelf-note { font-size: 12px; line-height: 1.45; color: var(--text-secondary); margin: 8px 12px 4px; }
+.shelf:not(.open) .shelf-note { display: none; }
+.sketch-hint {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: flex; align-items: center; gap: 8px; max-width: calc(100% - 140px);
+  padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg-panel); color: var(--text-primary); font-size: 13px; pointer-events: none;
+}
+.sketch-hint svg { color: var(--accent); flex: none; }
+.sketch-label {
+  transform: translate(10px, -130%); white-space: nowrap;
+  font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums;
+  padding: 2px 6px; border-radius: var(--radius-tag); background: var(--accent); color: #fff;
+}
+.shell:has(.inspector.open) .sketch-hint { left: calc(50% - 156px); max-width: calc(100% - 452px); }

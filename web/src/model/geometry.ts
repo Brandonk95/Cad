@@ -121,6 +121,15 @@ export function buildShapeGeometries(n: ShapeNode, clr: Clearances, parentQuat =
       case 'wedge':
         g = wedge()
         break
+      case 'extrude': {
+        const pts = n.params.profile ?? []
+        if (pts.length < 3) {
+          g = new THREE.BoxGeometry(1, 1, 1)
+          break
+        }
+        g = extrudeZ(new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))), 12)
+        break
+      }
       case 'screwHole': {
         if (n.params.screwType === 'nut') {
           const s = SCREWS[n.params.screwSize ?? 'M3']
@@ -149,6 +158,79 @@ export function buildShapeGeometries(n: ShapeNode, clr: Clearances, parentQuat =
   return [clean(g), ...extra.map(clean)]
 }
 
+/**
+ * Outline segments for a merged mesh: creases sharper than `thresholdDeg` and
+ * open borders. Merging leaves T-junctions (a corner sitting partway along a
+ * neighbour's edge) and slivers, which a plain edges helper draws as stray lines
+ * across flat faces. Here an edge counts as inside a flat face when a
+ * neighbouring triangle with the same facing covers its midpoint.
+ */
+export function featureEdges(g: THREE.BufferGeometry, thresholdDeg = 20): THREE.Vector3Tuple[] {
+  const pos = (g.index ? g.toNonIndexed() : g).getAttribute('position')
+  const cos = Math.cos((thresholdDeg * Math.PI) / 180)
+  const tris: { n: THREE.Vector3; v: THREE.Vector3[] }[] = []
+  for (let i = 0; i < pos.count; i += 3) {
+    const v = [0, 1, 2].map((k) => new THREE.Vector3().fromBufferAttribute(pos, i + k))
+    const cr = new THREE.Vector3().subVectors(v[2], v[1]).cross(new THREE.Vector3().subVectors(v[0], v[1]))
+    const longest = Math.max(v[0].distanceTo(v[1]), v[1].distanceTo(v[2]), v[2].distanceTo(v[0]))
+    if (!longest || cr.length() / longest < 1e-3) continue // sliver: no real facing
+    tris.push({ n: cr.normalize(), v })
+  }
+  // Grid of edges so "which edges pass through this point" is quick.
+  const CELL = 2
+  const key = (x: number, y: number, z: number) => `${Math.floor(x / CELL)},${Math.floor(y / CELL)},${Math.floor(z / CELL)}`
+  const grid = new Map<string, number[]>()
+  const edges: { a: THREE.Vector3; b: THREE.Vector3; t: number }[] = []
+  tris.forEach((t, ti) => {
+    for (let k = 0; k < 3; k++) {
+      const a = t.v[k]
+      const b = t.v[(k + 1) % 3]
+      const id = edges.push({ a, b, t: ti }) - 1
+      const len = a.distanceTo(b)
+      const steps = Math.max(1, Math.ceil(len / (CELL / 2)))
+      const seen = new Set<string>()
+      for (let s = 0; s <= steps; s++) {
+        const p = new THREE.Vector3().lerpVectors(a, b, s / steps)
+        const kk = key(p.x, p.y, p.z)
+        if (seen.has(kk)) continue
+        seen.add(kk)
+        const list = grid.get(kk)
+        if (list) list.push(id)
+        else grid.set(kk, [id])
+      }
+    }
+  })
+  const onSegment = (p: THREE.Vector3, a: THREE.Vector3, b: THREE.Vector3) => {
+    const ab = new THREE.Vector3().subVectors(b, a)
+    const l2 = ab.lengthSq()
+    if (!l2) return false
+    const t = new THREE.Vector3().subVectors(p, a).dot(ab) / l2
+    if (t < -1e-6 || t > 1 + 1e-6) return false
+    return a.clone().addScaledVector(ab, t).distanceToSquared(p) < 1e-8
+  }
+  const out: THREE.Vector3Tuple[] = []
+  for (const e of edges) {
+    const mid = new THREE.Vector3().addVectors(e.a, e.b).multiplyScalar(0.5)
+    const me = tris[e.t].n
+    let flat = false
+    let neighbour = false
+    for (const id of grid.get(key(mid.x, mid.y, mid.z)) ?? []) {
+      const o = edges[id]
+      if (o.t === e.t || !onSegment(mid, o.a, o.b)) continue
+      neighbour = true
+      if (tris[o.t].n.dot(me) > cos) {
+        flat = true
+        break
+      }
+    }
+    if (flat) continue
+    // A crease is seen from both sides; keep one copy.
+    if (neighbour && e.a.x + e.a.y + e.a.z > e.b.x + e.b.y + e.b.z) continue
+    out.push(e.a.toArray(), e.b.toArray())
+  }
+  return out
+}
+
 // ---------------------------------------------------------------------------
 // CSG
 
@@ -165,6 +247,34 @@ const brushFrom = (g: THREE.BufferGeometry, m: THREE.Matrix4) => {
   const b = new Brush(g.clone().applyMatrix4(m))
   b.updateMatrixWorld()
   return b
+}
+
+/** How far a stacked solid reaches into the one below while merging, in mm. */
+const SEAT = 0.01
+
+/**
+ * A solid whose bottom lies exactly on another solid's top (a part stacked on a
+ * part, or a sketch pulled up from a face) merges into thousands of sliver
+ * triangles. Stretching it down a hair into the part below avoids the touching
+ * faces. Only the merged mesh changes: the saved sizes stay exact.
+ */
+function seatStacked(solids: Brush[]) {
+  const boxes = solids.map((b) => {
+    b.geometry.computeBoundingBox()
+    return b.geometry.boundingBox!.clone()
+  })
+  solids.forEach((b, i) => {
+    const me = boxes[i]
+    const h = me.max.z - me.min.z
+    if (h <= SEAT * 2) return
+    const sits = boxes.some((o, j) => j !== i && Math.abs(o.max.z - me.min.z) < 1e-4 && o.max.x > me.min.x && o.min.x < me.max.x && o.max.y > me.min.y && o.min.y < me.max.y)
+    if (!sits) return
+    // Scale along Z about the top face so the bottom moves down by SEAT.
+    const top = me.max.z
+    const k = (h + SEAT) / h
+    b.geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, top).multiply(new THREE.Matrix4().makeScale(1, 1, k)).multiply(new THREE.Matrix4().makeTranslation(0, 0, -top)))
+    b.geometry.computeBoundingBox()
+  })
 }
 
 /**
@@ -191,6 +301,7 @@ export function groupGeometry(g: GroupNode, clr: Clearances, parentQuat = new TH
     }
   }
   if (!solids.length) return null
+  seatStacked(solids)
 
   let acc = solids[0]
   for (let i = 1; i < solids.length; i++) acc = evaluator.evaluate(acc, solids[i], ADDITION)
