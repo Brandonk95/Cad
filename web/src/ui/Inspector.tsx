@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FILAMENT_COLORS, MAGNETS, SCREW_SIZES, SCREW_TYPES, SCREWS, screwHoleSize } from '../model/catalog'
 import { holeIsSideways, isRoundHole, solidWorldBox } from '../model/geometry'
 import { canOpen, DEFAULT_FLOOR, DEFAULT_WALL, EDGE_KINDS, hasFloor, HOLLOW_KINDS, ROUND_SIDES, SIDED_KINDS } from '../model/details'
-import { findHub, findNode, mapNodes } from '../model/ops'
+import { findHub, findNode, mapNodes, type PatternOpts } from '../model/ops'
 import { usePatternPreview } from '../viewport/pattern'
 import { FIT_CLASSES, wallMin, type Clearances, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
 import { beginScrub, endScrub, useEditor, usePrintContext } from '../store/editor'
@@ -436,76 +436,112 @@ function AlignSection() {
   )
 }
 
-/** Circular pattern: copies of the selection around a center, previewed live. */
+/** Circular and linear patterns: copies of the selection, previewed live. */
 function PatternSection() {
   const selection = useEditor((s) => s.selection)
   const pattern = useEditor((s) => s.patternSelected)
   const ctx = usePrintContext()
-  const [open, setOpen] = useState(false)
+  const [kind, setKind] = useState<'circular' | 'linear' | null>(null)
   const [count, setCount] = useState(6)
   const [angle, setAngle] = useState(360)
   const [center, setCenter] = useState<[number, number]>([0, 0])
+  const [grid, setGrid] = useState<[number, number]>([3, 1])
+  const [spacing, setSpacing] = useState<[number, number]>([25, 25])
   const [hub, setHub] = useState<{ id: string; name: string } | null>(null)
   const [join, setJoin] = useState(true)
   const key = selection.join(',')
 
-  // Start from the part the selection sits on (a hub or plate), else the bed center.
-  const start = () => {
+  const start = (k: 'circular' | 'linear') => {
     const s = useEditor.getState()
     const h = findHub(s.nodes, s.selection, ctx.clearances)
-    if (h) {
-      const b = solidWorldBox(h, ctx.clearances)
-      setCenter([Math.round(((b.min.x + b.max.x) / 2) * 1000) / 1000, Math.round(((b.min.y + b.max.y) / 2) * 1000) / 1000])
-      setHub({ id: h.id, name: h.name })
-      setJoin(true)
+    setHub(h ? { id: h.id, name: h.name } : null)
+    setJoin(true)
+    if (k === 'circular') {
+      // Turn around the part the selection sits on (a hub or plate), else the bed center.
+      if (h) {
+        const b = solidWorldBox(h, ctx.clearances)
+        setCenter([Math.round(((b.min.x + b.max.x) / 2) * 1000) / 1000, Math.round(((b.min.y + b.max.y) / 2) * 1000) / 1000])
+      } else setCenter([0, 0])
     } else {
-      setCenter([0, 0])
-      setHub(null)
+      // Default spacing leaves a 5 mm gap between copies.
+      const box = s.nodes.filter((n) => s.selection.includes(n.id)).reduce((acc, n) => acc.union(solidWorldBox(n, ctx.clearances)), solidWorldBox(s.nodes.find((n) => s.selection.includes(n.id))!, ctx.clearances))
+      const r = (v: number) => Math.round(v * 10) / 10
+      setSpacing([r(box.max.x - box.min.x + 5), r(box.max.y - box.min.y + 5)])
+      setGrid([3, 1])
     }
-    setOpen(true)
+    setKind(k)
   }
 
+  const opts: PatternOpts | null =
+    kind === 'circular' ? { kind, count, angle, center } : kind === 'linear' ? { kind, count: grid, spacing } : null
+
   // A new selection closes the panel.
-  useEffect(() => setOpen(false), [key])
+  useEffect(() => setKind(null), [key])
   useEffect(() => {
-    usePatternPreview.setState({ opts: open ? { count, angle, center } : null })
-  }, [open, count, angle, center])
+    usePatternPreview.setState({ opts })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, count, angle, center, grid, spacing])
   useEffect(() => () => usePatternPreview.setState({ opts: null }), [])
 
-  if (!open)
+  if (!kind)
     return (
       <div className="section">
-        <button className="btn" style={{ width: '100%' }} onClick={start} title="Copy the selection around a circle">
-          <I.pattern size={16} /> Circular pattern
-        </button>
+        <h4>Pattern</h4>
+        <div className="row">
+          <button className="btn" style={{ flex: 1 }} onClick={() => start('circular')} title="Copy the selection around a circle">
+            <I.pattern size={16} /> Circular
+          </button>
+          <button className="btn" style={{ flex: 1 }} onClick={() => start('linear')} title="Copy the selection in a row or a grid">
+            <I.linear size={16} /> Linear
+          </button>
+        </div>
       </div>
     )
+
+  const copies = kind === 'circular' ? count - 1 : grid[0] * grid[1] - 1
   const full = Math.abs(angle) >= 360
+  const clampCount = (v: number, min: number) => Math.max(min, Math.min(100, Math.round(v)))
   return (
     <div className="section pattern">
-      <h4>Circular pattern</h4>
-      <div className="dims two">
-        <Num label="Count" unit="" step={1} value={count} onChange={(v) => setCount(Math.max(2, Math.min(360, Math.round(v))))} />
-        <Num label="Angle" unit="°" step={5} value={angle} onChange={(v) => setAngle(Math.max(-360, Math.min(360, v)) || 360)} />
-      </div>
-      <p className="note">{full ? `${count} copies spread evenly, ${Math.round((3600 / count)) / 10}° apart.` : `${count} copies over ${angle}°, ${Math.round((angle / (count - 1)) * 10) / 10}° apart.`}</p>
-      <h4>Center</h4>
-      <div className="dims two">
-        <Num label="X" value={center[0]} onChange={(v) => setCenter([v, center[1]])} />
-        <Num label="Y" value={center[1]} onChange={(v) => setCenter([center[0], v])} />
-      </div>
-      <p className="note">{hub ? `Turning around the center of ${hub.name}.` : 'Turning around the bed center. Set X and Y to turn around another point.'}</p>
+      <h4>{kind === 'circular' ? 'Circular pattern' : 'Linear pattern'}</h4>
+      {kind === 'circular' ? (
+        <>
+          <div className="dims two">
+            <Num label="Count" unit="" step={1} value={count} onChange={(v) => setCount(clampCount(v, 2))} />
+            <Num label="Angle" unit="°" step={5} value={angle} onChange={(v) => setAngle(Math.max(-360, Math.min(360, v)) || 360)} />
+          </div>
+          <p className="note">{full ? `${count} copies spread evenly, ${Math.round(3600 / count) / 10}° apart.` : `${count} copies over ${angle}°, ${Math.round((angle / (count - 1)) * 10) / 10}° apart.`}</p>
+          <h4>Center</h4>
+          <div className="dims two">
+            <Num label="X" value={center[0]} onChange={(v) => setCenter([v, center[1]])} />
+            <Num label="Y" value={center[1]} onChange={(v) => setCenter([center[0], v])} />
+          </div>
+          <p className="note">{hub ? `Turning around the center of ${hub.name}.` : 'Turning around the bed center. Set X and Y to turn around another point.'}</p>
+        </>
+      ) : (
+        <>
+          <div className="dims two">
+            <Num label="Across" unit="" step={1} value={grid[0]} onChange={(v) => setGrid([clampCount(v, 1), grid[1]])} />
+            <Num label="Step X" step={1} value={spacing[0]} onChange={(v) => setSpacing([v, spacing[1]])} />
+            <Num label="Back" unit="" step={1} value={grid[1]} onChange={(v) => setGrid([grid[0], clampCount(v, 1)])} />
+            <Num label="Step Y" step={1} value={spacing[1]} onChange={(v) => setSpacing([spacing[0], v])} />
+          </div>
+          <p className="note">
+            {grid[0]} × {grid[1]} {grid[1] > 1 && grid[0] > 1 ? 'grid' : 'row'}. Steps are center to center; the default leaves a 5 mm gap. Negative steps go left or to the front.
+          </p>
+        </>
+      )}
       {hub && (
         <label className="check">
           <input type="checkbox" checked={join} onChange={(e) => setJoin(e.target.checked)} /> Combine with {hub.name}
         </label>
       )}
       <div className="row">
-        <button className="btn primary" onClick={() => {
-          pattern({ count, angle, center }, hub && join ? hub.id : null)
-          setOpen(false)
-        }}><I.pattern size={16} /> Make {count - 1} {count - 1 === 1 ? 'copy' : 'copies'}</button>
-        <button className="btn" onClick={() => setOpen(false)}>Cancel</button>
+        <button className="btn primary" disabled={copies < 1} onClick={() => {
+          if (opts) pattern(opts, hub && join ? hub.id : null)
+          setKind(null)
+        }}><I.pattern size={16} /> Make {copies} {copies === 1 ? 'copy' : 'copies'}</button>
+        <button className="btn" onClick={() => setKind(null)}>Cancel</button>
       </div>
     </div>
   )

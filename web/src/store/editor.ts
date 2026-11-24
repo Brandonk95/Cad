@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ALL_TEMPLATES, FALLBACK_MATERIALS, PRINTER_PRESETS, uid } from '../model/catalog'
-import { circularCopies, type CircularPatternOpts, combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round } from '../model/ops'
+import { patternCopies, type PatternOpts, combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round } from '../model/ops'
 import { useSketch } from '../sketch/store'
 import { nodeWorldBox, solidWorldBox } from '../model/geometry'
 import { DEFAULT_CLEARANCES, type Clearances, type Material, type PrintContext, type PrinterProfile, type SceneNode, type ShapeKind, type ShapeNode, type Vec3 } from '../model/types'
@@ -86,8 +86,8 @@ interface EditorState {
   nudge: (dx: number, dy: number, dz: number) => void
   /** Line the selected parts up along world axes against the selection's overall bounds. */
   alignSelected: (axes: (0 | 1 | 2)[], to: 'min' | 'center' | 'max') => void
-  /** Copy the selection around a circle. With `hub`, the result is combined into that part. */
-  patternSelected: (o: CircularPatternOpts, hub?: string | null) => void
+  /** Copy the selection in a circle or in rows. With `hub`, the result is combined into that part. */
+  patternSelected: (o: PatternOpts, hub?: string | null) => void
   applyFix: (fix: Fix) => void
 
   setMode: (m: Mode) => void
@@ -312,8 +312,9 @@ export const useEditor = create<EditorState>((set, get) => {
 
     patternSelected: (o, hub) => {
       const sel = topLevel()
-      if (!sel.length || o.count < 2) return
-      const copies = circularCopies(get().nodes, sel, o)
+      if (!sel.length) return
+      const copies = patternCopies(get().nodes, sel, o)
+      if (!copies.length) return
       let nodes = [...get().nodes, ...copies]
       let selection = [...sel, ...copies.map((c) => c.id)]
       const host = hub ? nodes.find((n) => n.id === hub) : undefined
@@ -325,7 +326,7 @@ export const useEditor = create<EditorState>((set, get) => {
           selection = [g.id]
         }
       }
-      commitWith(`Circular pattern ×${Math.round(o.count)}`, 'pattern', nodes, selection)
+      commitWith(o.kind === 'circular' ? `Circular pattern ×${Math.round(o.count)}` : `Linear pattern ${o.count.map(Math.round).join('×')}`, 'pattern', nodes, selection)
     },
 
     applyFix: (fix) => {

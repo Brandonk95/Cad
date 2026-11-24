@@ -221,6 +221,34 @@ export function circularCopies(nodes: SceneNode[], ids: string[], o: CircularPat
   return out
 }
 
+export interface LinearPatternOpts {
+  /** Items along X and along Y, including the original (a grid when both are above 1) */
+  count: [number, number]
+  /** Center-to-center distance along X and Y in mm. Negative goes left / to the front. */
+  spacing: [number, number]
+}
+
+export type PatternOpts = ({ kind: 'circular' } & CircularPatternOpts) | ({ kind: 'linear' } & LinearPatternOpts)
+
+/** Copies of the given top-level nodes in rows and columns. */
+export function linearCopies(nodes: SceneNode[], ids: string[], o: LinearPatternOpts): SceneNode[] {
+  const picked = nodes.filter((n) => ids.includes(n.id))
+  const [nx, ny] = o.count.map((c) => Math.max(1, Math.min(100, Math.round(c))))
+  const out: SceneNode[] = []
+  for (let j = 0; j < ny; j++)
+    for (let i = 0; i < nx; i++) {
+      if (!i && !j) continue
+      for (const n of picked) {
+        const c = cloneWithNewIds(n)
+        out.push({ ...c, position: [round(n.position[0] + i * o.spacing[0]), round(n.position[1] + j * o.spacing[1]), n.position[2]] })
+      }
+    }
+  return out
+}
+
+export const patternCopies = (nodes: SceneNode[], ids: string[], p: PatternOpts) =>
+  p.kind === 'circular' ? circularCopies(nodes, ids, p) : linearCopies(nodes, ids, p)
+
 /**
  * The part the selection sits on or in (a hub or plate), if any: the smallest
  * other solid whose footprint contains the selection's center. Patterns

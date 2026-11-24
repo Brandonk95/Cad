@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Edges, Html, Line, OrbitControls, TransformControls } from '@react-three/drei'
 import { buildShapeGeometries, groupGeometry, nodeWorldBox, solidWorldBox, featureEdges } from '../model/geometry'
-import { circularCopies, findNode, mapNodes, round } from '../model/ops'
+import { patternCopies, findNode, mapNodes, round } from '../model/ops'
 import { usePatternPreview } from './pattern'
 import { clearSnapGuides, freeMove, snapMove, useSnapGuides, type SnapTarget } from './snap'
 import type { Clearances, SceneNode, Vec3 } from '../model/types'
@@ -268,20 +268,20 @@ function Gizmo({ id }: { id: string }) {
   )
 }
 
-/** Ghost copies and the circle while a circular pattern is being set up. */
+/** Ghost copies (and the circle, for circular patterns) while a pattern is being set up. */
 function PatternGhosts({ c, clr }: { c: ThemeColors; clr: Clearances }) {
   const opts = usePatternPreview((s) => s.opts)
   const nodes = useEditor((s) => s.nodes)
   const selection = useEditor((s) => s.selection)
   const ghosts = useMemo(() => {
     if (!opts) return []
-    return circularCopies(nodes, selection, opts).map((n) => ({
+    return patternCopies(nodes, selection, opts).map((n) => ({
       n,
       geos: n.type === 'group' ? [groupGeometry(n, clr)].filter(Boolean) as THREE.BufferGeometry[] : buildShapeGeometries(n, clr),
     }))
   }, [opts, nodes, selection, clr])
   const ring = useMemo(() => {
-    if (!opts) return null
+    if (!opts || opts.kind !== 'circular') return null
     const picked = nodes.filter((n) => selection.includes(n.id))
     if (!picked.length) return null
     const box = new THREE.Box3()
@@ -294,7 +294,7 @@ function PatternGhosts({ c, clr }: { c: ThemeColors; clr: Clearances }) {
     return { pts, z, r }
   }, [opts, nodes, selection, clr])
   if (!opts) return null
-  const [cx, cy] = opts.center
+  const [cx, cy] = opts.kind === 'circular' ? opts.center : [0, 0]
   const arm = Math.max(3, (ring?.r ?? 10) * 0.12)
   const z = ring?.z ?? 0.05
   return (
@@ -309,7 +309,7 @@ function PatternGhosts({ c, clr }: { c: ThemeColors; clr: Clearances }) {
         </group>
       ))}
       {ring && ring.r > 0.01 && <Line points={ring.pts} color={c.accent} lineWidth={1} dashed dashSize={2} gapSize={2} depthTest={false} renderOrder={20} />}
-      <Line points={[[cx - arm, cy, z], [cx + arm, cy, z], [cx, cy - arm, z], [cx, cy + arm, z]]} segments color={c.accent} lineWidth={2} depthTest={false} renderOrder={21} />
+      {opts.kind === 'circular' && <Line points={[[cx - arm, cy, z], [cx + arm, cy, z], [cx, cy - arm, z], [cx, cy + arm, z]]} segments color={c.accent} lineWidth={2} depthTest={false} renderOrder={21} />}
     </group>
   )
 }

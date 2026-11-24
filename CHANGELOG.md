@@ -4,6 +4,12 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.12.0 — 2026-11-24
+
+- Linear pattern. Select a part and pick Pattern, then Linear in the inspector to copy it in a row, or in a grid with rows going back.
+- Set how many go across and back and the step between them. The default leaves a 5 mm gap, and negative steps go left or to the front.
+- A linear pattern on a plate can combine with it in one step, for example to cut a grid of holes
+
 ## 0.11.0 — 2026-11-24
 
 - Circular pattern. Select a part (or several), open Circular pattern in the inspector, and set the count and angle. A preview shows the copies before you make them.

@@ -48,6 +48,7 @@ export const I = {
   line: (p: P) => <Svg {...p}><path d="M3.5 15.5 7 5l6.5 3 3 8z" /><circle cx="3.5" cy="15.5" r="1.2" fill="currentColor" /><circle cx="7" cy="5" r="1.2" fill="currentColor" /><circle cx="13.5" cy="8" r="1.2" fill="currentColor" /></Svg>,
   pull: (p: P) => <Svg {...p}><path d="M3 16h14M5 16v-3h10v3M10 11V3M7 6l3-3 3 3" /></Svg>,
   pattern: (p: P) => <Svg {...p}><circle cx="10" cy="10" r="6.5" strokeDasharray="2 2.2" /><circle cx="10" cy="3.5" r="1.8" fill="currentColor" /><circle cx="15.6" cy="13.2" r="1.8" fill="currentColor" /><circle cx="4.4" cy="13.2" r="1.8" fill="currentColor" /></Svg>,
+  linear: (p: P) => <Svg {...p}><rect x="2.5" y="7" width="4" height="6" rx="1" fill="currentColor" /><rect x="8" y="7" width="4" height="6" rx="1" /><rect x="13.5" y="7" width="4" height="6" rx="1" /><path d="M3 16h14" strokeDasharray="1.5 1.5" /></Svg>,
   block: (p: P) => <Svg {...p}><path d="M10 2.5 16.5 6v8L10 17.5 3.5 14V6z" /><path d="M3.5 6 10 9.5 16.5 6M10 9.5v8" /></Svg>,
   sketch: (p: P) => <Svg {...p}><path d="M2.5 15.5 6 12.5h11.5L14 15.5z" /><path d="m8 11 6.5-6.5 1.5 1.5L9.5 12.5H8z" /></Svg>,
   pro: (p: P) => <Svg {...p}><rect x="2.5" y="2.5" width="6" height="4" rx="1" /><rect x="11.5" y="8" width="6" height="4" rx="1" /><rect x="11.5" y="13.5" width="6" height="4" rx="1" /><path d="M5.5 6.5V15.5h6M5.5 10h6" /></Svg>,
