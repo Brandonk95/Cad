@@ -493,3 +493,24 @@ body.picking canvas { cursor: crosshair !important; }
 .issue-swatch[data-kind='overhang'], .issue-swatch[data-kind='supports'] { background: var(--print-overhang); }
 .issue-swatch[data-kind='bridge'] { background: var(--print-bridge); }
 .issue-swatch[data-kind='tiny'] { background: var(--print-tiny); }
+
+/* Box select */
+.box-select { position: absolute; z-index: 6; pointer-events: none; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 2px; }
+
+/* Editing inside a combined part */
+.group-banner {
+  position: absolute; left: 50%; top: 64px; transform: translateX(-50%); z-index: 7;
+  display: flex; align-items: center; gap: 10px; max-width: calc(100% - 32px);
+  padding: 6px 6px 6px 12px; border-radius: var(--radius); border: 1px solid var(--accent);
+  background: var(--bg-panel); font-size: 13px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+.group-banner svg { color: var(--accent); flex: none; }
+
+/* Section view */
+.section-panel {
+  position: absolute; top: 64px; left: 12px; z-index: 5; display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-panel);
+}
+.section-panel input[type='range'] { width: 160px; accent-color: var(--accent); }
+.section-at { font-size: 12px; min-width: 84px; font-variant-numeric: tabular-nums; }
+.shell:has(.inspector.open) .group-banner { left: calc(50% - 150px); max-width: calc(100% - 332px); }

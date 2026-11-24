@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ALL_TEMPLATES, FALLBACK_MATERIALS, PRINTER_PRESETS, uid } from '../model/catalog'
-import { patternCopies, type PatternOpts, combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round, mirrorWorld } from '../model/ops'
+import { patternCopies, type PatternOpts, combine, cloneWithNewIds, dropToBed, findNode, mapNodes, removeNodes, rotateWorld, scaleNode, ungroup, round, mirrorWorld, closeGroupFrame, type GroupEditFrame } from '../model/ops'
 import { useSketch } from '../sketch/store'
 import { useMeasure } from '../viewport/measure'
 import { nodeWorldBox, solidWorldBox } from '../model/geometry'
@@ -27,6 +27,8 @@ export interface HistoryEntry {
   label: string
   icon: HistoryIcon
   nodes: SceneNode[]
+  /** Groups open for editing at this step */
+  edit?: GroupEditFrame[]
 }
 
 export interface Toast {
@@ -73,7 +75,14 @@ interface EditorState {
   redo: () => void
   jumpTo: (i: number) => void
   select: (ids: string[], additive?: boolean) => void
-  add: (kind: ShapeKind) => void
+  /** Adds a shape. With `at`, it stands on that face (holes sink into it); otherwise beside the other parts. */
+  add: (kind: ShapeKind, at?: { point: Vec3; normal: Vec3 } | null) => void
+  /** Groups opened for editing, outermost first */
+  groupEdit: GroupEditFrame[]
+  /** Opens a combined part so its pieces can be edited one by one. */
+  openGroup: (id: string) => void
+  /** Puts the innermost opened group back together. */
+  closeGroup: () => void
   updateNode: (id: string, patch: Partial<ShapeNode> | Partial<SceneNode>, label?: string, icon?: HistoryIcon) => void
   removeSelected: () => void
   duplicateSelected: () => void
@@ -136,7 +145,7 @@ export const useEditor = create<EditorState>((set, get) => {
     // While a value is being dragged, every change after the first replaces that one step.
     const merge = scrub.active && scrub.started && cursor > 0
     if (scrub.active) scrub.started = true
-    const next = history.slice(0, merge ? cursor : cursor + 1).concat({ label, icon, nodes })
+    const next = history.slice(0, merge ? cursor : cursor + 1).concat({ label, icon, nodes, edit: get().groupEdit })
     set({ nodes, history: next, cursor: next.length - 1, dirty: get().dirty + 1, ...(selection ? { selection } : {}) })
   }
   const clr = () => contextOf(get()).clearances
@@ -168,24 +177,24 @@ export const useEditor = create<EditorState>((set, get) => {
     toasts: [],
 
     load: (id, name, nodes) =>
-      set({ projectId: id, projectName: name, nodes, selection: [], history: [{ label: 'Opened', icon: 'start', nodes }], cursor: 0, dirty: 0 }),
+      set({ projectId: id, projectName: name, nodes, selection: [], groupEdit: [], history: [{ label: 'Opened', icon: 'start', nodes }], cursor: 0, dirty: 0 }),
     setProjectName: (projectName) => set({ projectName, dirty: get().dirty + 1 }),
     commit: commitWith,
     setLive: (nodes) => set({ nodes }),
     undo: () => {
       const { cursor, history } = get()
       if (cursor <= 0) return
-      set({ cursor: cursor - 1, nodes: history[cursor - 1].nodes, dirty: get().dirty + 1, selection: [] })
+      set({ cursor: cursor - 1, nodes: history[cursor - 1].nodes, groupEdit: history[cursor - 1].edit ?? [], dirty: get().dirty + 1, selection: [] })
     },
     redo: () => {
       const { cursor, history } = get()
       if (cursor >= history.length - 1) return
-      set({ cursor: cursor + 1, nodes: history[cursor + 1].nodes, dirty: get().dirty + 1 })
+      set({ cursor: cursor + 1, nodes: history[cursor + 1].nodes, groupEdit: history[cursor + 1].edit ?? [], dirty: get().dirty + 1 })
     },
     jumpTo: (i) => {
       const { history } = get()
       if (i < 0 || i >= history.length) return
-      set({ cursor: i, nodes: history[i].nodes, dirty: get().dirty + 1, selection: [] })
+      set({ cursor: i, nodes: history[i].nodes, groupEdit: history[i].edit ?? [], dirty: get().dirty + 1, selection: [] })
     },
     select: (ids, additive) => {
       if (!additive) return set({ selection: ids })
@@ -194,10 +203,45 @@ export const useEditor = create<EditorState>((set, get) => {
       set({ selection: [...cur] })
     },
 
-    add: (kind) => {
+    groupEdit: [],
+    openGroup: (id) => {
+      const g = get().nodes.find((n) => n.id === id)
+      if (!g || g.type !== 'group') return
+      const outside = get().nodes.filter((n) => n.id !== id).map((n) => n.id)
+      const r = ungroup(get().nodes, id)
+      set({ groupEdit: [...get().groupEdit, { id, name: g.name, color: g.color, outside }] })
+      commitWith(`Open ${g.name}`, 'ungroup', r.nodes, [])
+    },
+    closeGroup: () => {
+      const stack = get().groupEdit
+      const f = stack[stack.length - 1]
+      if (!f) return
+      const r = closeGroupFrame(get().nodes, f, clr())
+      set({ groupEdit: stack.slice(0, -1) })
+      commitWith(`Close ${f.name}`, 'group', r.nodes, r.id ? [r.id] : [])
+    },
+
+    add: (kind, at) => {
       const t = ALL_TEMPLATES.find((x) => x.kind === kind)
       if (!t) return
       const base = t.make()
+      if (at) {
+        // Stand on the face: local up along the face normal. Holes sink in, poking 0.05 mm out to open the face.
+        const n = new THREE.Vector3(...at.normal).normalize()
+        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), n)
+        const e = new THREE.Euler().setFromQuaternion(q, 'XYZ')
+        const rotation = [e.x, e.y, e.z].map((v) => round((v * 180) / Math.PI, 4)) as Vec3
+        const h = base.size[2]
+        const off = base.hole ? -(h / 2 - 0.05) : h / 2
+        const p = new THREE.Vector3(...at.point).addScaledVector(n, off)
+        const node: ShapeNode = { ...base, id: uid(), rotation, position: [round(p.x), round(p.y), round(p.z)] }
+        const added: SceneNode[] = [node]
+        if (kind === 'pin') {
+          const side = new THREE.Vector3(0, node.size[1] + 5, 0).applyQuaternion(q)
+          added.push({ ...node, id: uid(), kind: 'cylinder', name: 'Pin hole', hole: true, fit: 'slide', position: [round(p.x + side.x), round(p.y + side.y), round(p.z + side.z)] })
+        }
+        return commitWith(`Add ${t.label.toLowerCase()}`, kind, [...get().nodes, ...added], [node.id])
+      }
       // Place new shapes on the bed, next to whatever is already there.
       const box = get().nodes.reduce((b, n) => b.union(nodeWorldBox(n, clr())), new THREE.Box3())
       const x = box.isEmpty() ? 0 : round(box.max.x + base.size[0] / 2 + 5, 1)

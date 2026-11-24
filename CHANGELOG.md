@@ -4,6 +4,13 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.17.0 — 2026-11-24
+
+- **Drop onto a face:** press a shape key with the mouse over the canvas, or drag a shape from the shelf, and it lands where you point, standing on that face. Holes sink straight into it.
+- **Edit inside a combined part:** double-click it to change its pieces one by one, or add new ones. Press Done or Esc to put it back together. Undo steps in and out too.
+- **Box select:** Shift-drag on empty space to select every part inside the box.
+- **Section view:** the new button by Measure cuts the model across X, Y or Z so you can see inside. Slide the cut along; Flip shows the other side.
+
 ## 0.16.0 — 2026-11-24
 
 - Hover the glowing problem dot to read what's wrong with that part, right on the canvas.

@@ -50,6 +50,7 @@ export const I = {
   pattern: (p: P) => <Svg {...p}><circle cx="10" cy="10" r="6.5" strokeDasharray="2 2.2" /><circle cx="10" cy="3.5" r="1.8" fill="currentColor" /><circle cx="15.6" cy="13.2" r="1.8" fill="currentColor" /><circle cx="4.4" cy="13.2" r="1.8" fill="currentColor" /></Svg>,
   linear: (p: P) => <Svg {...p}><rect x="2.5" y="7" width="4" height="6" rx="1" fill="currentColor" /><rect x="8" y="7" width="4" height="6" rx="1" /><rect x="13.5" y="7" width="4" height="6" rx="1" /><path d="M3 16h14" strokeDasharray="1.5 1.5" /></Svg>,
   text: (p: P) => <Svg {...p}><path d="M4 5.5V4h12v1.5M10 4v12.5M7.5 16.5h5" /></Svg>,
+  section: (p: P) => <Svg {...p}><path d="M10 2.5 16.5 6v8L10 17.5 3.5 14V6z" strokeOpacity={0.45} /><path d="M2 10.5h16" /><path d="M3.5 10.5 10 14l6.5-3.5" /></Svg>,
   mirror: (p: P) => <Svg {...p}><path d="M10 2.5v15" strokeDasharray="1.6 1.6" /><path d="M7.5 5 3 14.5h4.5z" /><path d="M12.5 5 17 14.5h-4.5z" fill="currentColor" /></Svg>,
   measure: (p: P) => <Svg {...p}><path d="M2.8 13.2 13.2 2.8l4 4L6.8 17.2z" /><path d="M6 10l1.5 1.5M8.5 7.5 10 9M11 5l1.5 1.5" /></Svg>,
   block: (p: P) => <Svg {...p}><path d="M10 2.5 16.5 6v8L10 17.5 3.5 14V6z" /><path d="M3.5 6 10 9.5 16.5 6M10 9.5v8" /></Svg>,

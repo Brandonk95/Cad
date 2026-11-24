@@ -306,3 +306,34 @@ export function mirrorWorld(n: SceneNode, axis: 0 | 1 | 2, at: number): SceneNod
   position[axis] = round(position[axis] + 2 * at)
   return { ...m, position }
 }
+
+/** A group opened for editing: its pieces sit at the top level until it is closed. */
+export interface GroupEditFrame {
+  id: string
+  name: string
+  color: string
+  /** Top-level parts that were already there, outside the group */
+  outside: string[]
+}
+
+/**
+ * Puts an opened group back together: every top-level part that isn't one of
+ * the outside parts belongs to it, including pieces added while it was open.
+ */
+export function closeGroupFrame(nodes: SceneNode[], f: GroupEditFrame, clr: Clearances): { nodes: SceneNode[]; id: string | null } {
+  const outside = new Set(f.outside)
+  const members = nodes.filter((n) => !outside.has(n.id)).map((n) => n.id)
+  if (members.length === 0) return { nodes, id: null }
+  if (members.length === 1) return { nodes, id: members[0] }
+  const r = combine(nodes, members, clr)
+  if (!r.group) return { nodes, id: null }
+  const g = { ...r.group, id: f.id, name: f.name, color: f.color }
+  return { nodes: r.nodes.map((n) => (n.id === r.group!.id ? g : n)), id: f.id }
+}
+
+/** The model as it will print: every opened group closed again, innermost first. */
+export function closedModel(nodes: SceneNode[], stack: GroupEditFrame[], clr: Clearances): SceneNode[] {
+  let out = nodes
+  for (let i = stack.length - 1; i >= 0; i--) out = closeGroupFrame(out, stack[i], clr).nodes
+  return out
+}

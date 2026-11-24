@@ -3,6 +3,14 @@ import { useEditor } from '../store/editor'
 import { I } from './Icons'
 import { SKETCH_TOOLS, useSketch } from '../sketch/store'
 
+/** Drag type for a shape dragged from the shelf onto the canvas. */
+export const SHAPE_DRAG = 'application/x-stratum-shape'
+
+const drag = (e: React.DragEvent, kind: string) => {
+  e.dataTransfer.setData(SHAPE_DRAG, kind)
+  e.dataTransfer.effectAllowed = 'copy'
+}
+
 export function ToolShelf() {
   const open = useEditor((s) => s.shelfOpen)
   const setOpen = useEditor((s) => s.setShelfOpen)
@@ -37,7 +45,7 @@ export function ToolShelf() {
       {SHAPES.map((t) => {
         const Icon = I[t.kind as 'box']
         return (
-          <button key={t.kind} className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} title={`${t.label} (${t.key})`}>
+          <button key={t.kind} className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} draggable onDragStart={(e) => drag(e, t.kind)} title={`${t.label} (${t.key}). Drag onto a face to place it there.`}>
             <Icon />
             <span className="label">{t.label}</span>
             <kbd>{t.key}</kbd>
@@ -48,7 +56,7 @@ export function ToolShelf() {
       {PRINT_PRIMITIVES.map((t) => {
         const Icon = I[t.kind as 'screwHole']
         return (
-          <button key={t.kind} className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} title={`${t.label} (${t.key})`}>
+          <button key={t.kind} className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} draggable onDragStart={(e) => drag(e, t.kind)} title={`${t.label} (${t.key}). Drag onto a face to place it there.`}>
             <Icon />
             <span className="label">{t.label}</span>
             <kbd>{t.key}</kbd>
