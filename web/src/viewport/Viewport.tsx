@@ -105,6 +105,8 @@ function NodeMesh({ node, selected, clr, c, dim, pickable }: { node: SceneNode; 
         if (!pickable) return
         e.stopPropagation()
         if (Date.now() - lastGizmo < 250) return
+        const pick = usePatternPreview.getState().onPick
+        if (pick) return pick(node.id)
         select([node.id], e.shiftKey || e.ctrlKey || e.metaKey)
       }}
     >
@@ -430,6 +432,7 @@ export function Viewport() {
       camera={{ position: [camDist * 0.55, -camDist * 0.85, camDist * 0.62], fov: 40, near: 0.5, far: 20000 }}
       onPointerMissed={() => {
         if (drawing || Date.now() - lastGizmo < 250) return
+        if (usePatternPreview.getState().onPick) return usePatternPreview.setState({ onPick: null })
         select([])
       }}
     >

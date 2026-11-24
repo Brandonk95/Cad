@@ -4,7 +4,7 @@ import { holeIsSideways, isRoundHole, solidWorldBox } from '../model/geometry'
 import { canOpen, DEFAULT_FLOOR, DEFAULT_WALL, EDGE_KINDS, hasFloor, HOLLOW_KINDS, ROUND_SIDES, SIDED_KINDS } from '../model/details'
 import { findHub, findNode, mapNodes, type PatternOpts } from '../model/ops'
 import { usePatternPreview } from '../viewport/pattern'
-import { viewAxes } from '../viewport/viewDir'
+import { viewAxes, viewMove } from '../viewport/viewDir'
 import { FIT_CLASSES, wallMin, type Clearances, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
 import { beginScrub, endScrub, useEditor, usePrintContext } from '../store/editor'
 import { I } from './Icons'
@@ -459,7 +459,52 @@ function PatternSection() {
   const [spacing, setSpacing] = useState<[number, number]>([25, 25])
   const [hub, setHub] = useState<{ id: string; name: string } | null>(null)
   const [join, setJoin] = useState(true)
+  /** Part the center follows; moving that part moves the center with it. */
+  const [centerOn, setCenterOn] = useState<string | null>(null)
+  const picking = usePatternPreview((s) => s.onPick !== null)
+  const nodes = useEditor((s) => s.nodes)
   const key = selection.join(',')
+
+  const boxCenter = (b: { min: { x: number; y: number }; max: { x: number; y: number } }): [number, number] => [
+    Math.round(((b.min.x + b.max.x) / 2) * 1000) / 1000,
+    Math.round(((b.min.y + b.max.y) / 2) * 1000) / 1000,
+  ]
+  const target = centerOn ? findNode(nodes, centerOn) : undefined
+  // The center tracks the picked part live; without one it is the typed point.
+  const c: [number, number] = target ? boxCenter(solidWorldBox(target, ctx.clearances)) : center
+  const selBox = () => {
+    const sel = nodes.filter((n) => selection.includes(n.id))
+    return sel.length ? sel.reduce((acc, n) => acc.union(solidWorldBox(n, ctx.clearances)), solidWorldBox(sel[0], ctx.clearances)) : null
+  }
+  const sb = kind === 'circular' ? selBox() : null
+  const sc = sb ? boxCenter(sb) : c
+  const distance = Math.round(Math.hypot(sc[0] - c[0], sc[1] - c[1]) * 100) / 100
+
+  /** Slides the selection straight toward or away from the center. */
+  const setDistance = (v: number) => {
+    const r = Math.max(0, v)
+    const dx = sc[0] - c[0]
+    const dy = sc[1] - c[1]
+    const d = Math.hypot(dx, dy)
+    const [ux, uy] = d > 1e-6 ? [dx / d, dy / d] : viewMove(1, 0)
+    const k = r - d
+    if (Math.abs(k) > 1e-6) useEditor.getState().nudge(ux * k, uy * k, 0)
+  }
+
+  const pickCenter = () => {
+    usePatternPreview.setState({
+      onPick: (id) => {
+        const s = useEditor.getState()
+        const n = findNode(s.nodes, id)
+        if (!n) return
+        if (s.selection.includes(id)) return s.toast('Pick a part that is not being copied.', 'info')
+        usePatternPreview.setState({ onPick: null })
+        setCenterOn(id)
+        setHub({ id, name: n.name })
+        setJoin(findHub(s.nodes, s.selection, ctx.clearances)?.id === id)
+      },
+    })
+  }
 
   const start = (k: 'circular' | 'linear') => {
     const s = useEditor.getState()
@@ -468,10 +513,8 @@ function PatternSection() {
     setJoin(true)
     if (k === 'circular') {
       // Turn around the part the selection sits on (a hub or plate), else the bed center.
-      if (h) {
-        const b = solidWorldBox(h, ctx.clearances)
-        setCenter([Math.round(((b.min.x + b.max.x) / 2) * 1000) / 1000, Math.round(((b.min.y + b.max.y) / 2) * 1000) / 1000])
-      } else setCenter([0, 0])
+      setCenterOn(h ? h.id : null)
+      setCenter(h ? boxCenter(solidWorldBox(h, ctx.clearances)) : [0, 0])
     } else {
       // Default spacing leaves a 5 mm gap between copies.
       const box = s.nodes.filter((n) => s.selection.includes(n.id)).reduce((acc, n) => acc.union(solidWorldBox(n, ctx.clearances)), solidWorldBox(s.nodes.find((n) => s.selection.includes(n.id))!, ctx.clearances))
@@ -483,15 +526,41 @@ function PatternSection() {
   }
 
   const opts: PatternOpts | null =
-    kind === 'circular' ? { kind, count, angle, center } : kind === 'linear' ? { kind, count: grid, spacing } : null
+    kind === 'circular' ? { kind, count, angle, center: c } : kind === 'linear' ? { kind, count: grid, spacing } : null
 
   // A new selection closes the panel.
   useEffect(() => setKind(null), [key])
   useEffect(() => {
     usePatternPreview.setState({ opts })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, count, angle, center, grid, spacing])
-  useEffect(() => () => usePatternPreview.setState({ opts: null }), [])
+  }, [kind, count, angle, c[0], c[1], grid, spacing])
+  useEffect(() => () => usePatternPreview.setState({ opts: null, onPick: null }), [])
+  // Closing the panel or picking a part that is gone stops picking.
+  useEffect(() => {
+    if (kind !== 'circular') usePatternPreview.setState({ onPick: null })
+  }, [kind])
+  useEffect(() => {
+    if (centerOn && !target) {
+      setCenterOn(null)
+      setHub(null)
+    }
+  }, [centerOn, target])
+  // Esc cancels picking before anything else hears it.
+  useEffect(() => {
+    if (!picking) return
+    document.body.classList.add('picking')
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopImmediatePropagation()
+      e.preventDefault()
+      usePatternPreview.setState({ onPick: null })
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      document.body.classList.remove('picking')
+      window.removeEventListener('keydown', onKey, true)
+    }
+  }, [picking])
 
   if (!kind)
     return (
@@ -522,11 +591,20 @@ function PatternSection() {
           </div>
           <p className="note">{full ? `${count} copies spread evenly, ${Math.round(3600 / count) / 10}° apart.` : `${count} copies over ${angle}°, ${Math.round((angle / (count - 1)) * 10) / 10}° apart.`}</p>
           <h4>Center</h4>
+          <button className={`btn${picking ? ' primary' : ''}`} style={{ width: '100%' }} aria-pressed={picking} onClick={() => (picking ? usePatternPreview.setState({ onPick: null }) : pickCenter())} title="Click a part on the canvas to turn around its center">
+            <I.pointer size={16} /> {picking ? 'Click a part… (Esc to cancel)' : 'Center on part'}
+          </button>
           <div className="dims two">
-            <Num label="X" value={center[0]} onChange={(v) => setCenter([v, center[1]])} />
-            <Num label="Y" value={center[1]} onChange={(v) => setCenter([center[0], v])} />
+            <Num label="X" value={c[0]} onChange={(v) => { setCenterOn(null); setCenter([v, c[1]]) }} />
+            <Num label="Y" value={c[1]} onChange={(v) => { setCenterOn(null); setCenter([c[0], v]) }} />
+            <Num label="Distance" step={1} value={distance} onChange={setDistance} />
           </div>
-          <p className="note">{hub ? `Turning around the center of ${hub.name}.` : 'Turning around the bed center. Set X and Y to turn around another point.'}</p>
+          <p className="note">
+            {target
+              ? `Turning around the center of ${target.name}; it follows that part if it moves.`
+              : 'Turning around a fixed point. Pick a part to follow its center.'}{' '}
+            Distance slides the selection toward or away from the center.
+          </p>
         </>
       ) : (
         <>

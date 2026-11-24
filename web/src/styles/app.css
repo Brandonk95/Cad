@@ -463,3 +463,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Circular pattern */
 .check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0 8px; cursor: pointer; }
 .check input { accent-color: var(--accent); }
+
+/* Picking a part for the pattern center */
+body.picking canvas { cursor: crosshair !important; }

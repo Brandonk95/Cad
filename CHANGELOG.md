@@ -4,6 +4,12 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.14.0 — 2026-11-24
+
+- Circular pattern: **Center on part** lets you click any part to turn around its center. The center follows that part.
+- New **Distance** field slides your selection toward or away from the center, so you can set the ring size directly.
+- Esc or a click on empty space cancels picking.
+
 ## 0.13.0 — 2026-11-24
 
 - Arrow keys now move parts the way you're looking. Up moves away from you, Left and Right move left and right on screen, from any camera angle.
