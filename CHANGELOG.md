@@ -4,6 +4,10 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.19.2 — 2026-11-25
+
+- A fin can with an odd number of fins (3 or 5) now stays centred on its tube. Align, Center on each other, size tags, circular pattern centres and placing new parts beside it all use the full circle the fin tips sweep. Before, they used the lopsided outline of the fins, which pulled them about 15 mm off the tube's axis. This also holds after combining the fin can with a tube.
+
 ## 0.19.1 — 2026-11-25
 
 - **New part** now opens a draft. It isn't saved, and doesn't show up in Your parts, until you add something to it, so opening a new part and leaving no longer leaves an empty "Untitled part" behind. The top bar says "Not saved yet" until then.

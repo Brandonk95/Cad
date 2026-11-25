@@ -354,6 +354,23 @@ export function worldBodies(nodes: SceneNode[], clr: Clearances): Body[] {
   return out
 }
 
+/**
+ * A fin can's box is the full circle its fin tips sweep, centred on the tube.
+ * With an odd number of fins the mesh itself is lopsided, which would pull
+ * centring, alignment and patterns off the tube's axis.
+ */
+function roundBox(n: ShapeNode, clr: Clearances, m: THREE.Matrix4): THREE.Box3 {
+  const [sx, sy, sz] = effectiveSize(n, clr)
+  return new THREE.Box3(new THREE.Vector3(-sx / 2, -sy / 2, -sz / 2), new THREE.Vector3(sx / 2, sy / 2, sz / 2)).applyMatrix4(m)
+}
+
+/** Fin cans anywhere inside a group, as round boxes in world space. */
+function roundBoxesIn(n: SceneNode, clr: Clearances, parent: THREE.Matrix4, out: THREE.Box3[]) {
+  const m = parent.clone().multiply(matrixOf(n))
+  if (n.type === 'group') for (const c of n.children) roundBoxesIn(c, clr, m, out)
+  else if (n.kind === 'fincan' && !n.hole) out.push(roundBox(n, clr, m))
+}
+
 /** World-space bounding box of a node (used for drop-to-bed, size tags, groups). */
 export function nodeWorldBox(n: SceneNode, clr: Clearances, parent = new THREE.Matrix4()): THREE.Box3 {
   const m = parent.clone().multiply(matrixOf(n))
@@ -362,6 +379,7 @@ export function nodeWorldBox(n: SceneNode, clr: Clearances, parent = new THREE.M
     for (const c of n.children) box.union(nodeWorldBox(c, clr, m))
     return box
   }
+  if (n.kind === 'fincan') return roundBox(n, clr, m)
   for (const g of buildShapeGeometries(n, clr)) {
     g.applyMatrix4(m)
     g.computeBoundingBox()
@@ -383,6 +401,10 @@ export function solidWorldBox(n: SceneNode, clr: Clearances): THREE.Box3 {
       w.computeBoundingBox()
       const box = w.boundingBox!.clone()
       w.dispose()
+      // Keep combined fin cans centred on their tube too.
+      const round: THREE.Box3[] = []
+      roundBoxesIn(n, clr, new THREE.Matrix4(), round)
+      for (const b of round) box.union(b)
       if (!box.isEmpty()) return box
     }
   }
