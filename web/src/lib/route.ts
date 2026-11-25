@@ -7,6 +7,9 @@ const parse = (): Route => {
   return m ? { name: 'project', id: m[1] } : { name: 'home' }
 }
 
+/** A new part that isn't saved yet. It becomes a real project once something is added. */
+export const DRAFT_ID = 'new'
+
 export const go = (r: Route) => {
   window.location.hash = r.name === 'project' ? `#/p/${r.id}` : '#/'
 }

@@ -4,6 +4,10 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.19.1 — 2026-11-25
+
+- **New part** now opens a draft. It isn't saved, and doesn't show up in Your parts, until you add something to it, so opening a new part and leaving no longer leaves an empty "Untitled part" behind. The top bar says "Not saved yet" until then.
+
 ## 0.19.0 — 2026-11-25
 
 - New **Rocketry** section on the tool shelf, with the nose cone and seven new parts for model rockets.

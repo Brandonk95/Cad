@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { getProject, saveProject } from '../lib/pb'
+import { createProject, getProject, saveProject } from '../lib/pb'
 import { registerFlush } from '../lib/saveGate'
-import { go } from '../lib/route'
+import { DRAFT_ID, go } from '../lib/route'
 import { contextOf, useEditor } from '../store/editor'
 import { closedModel } from '../model/ops'
 import { useAnalysis, useLiveAnalysis } from '../store/analysis'
@@ -97,26 +97,67 @@ function useShortcuts() {
 }
 
 /** Saves a moment after the last change. Thumbnails at most every 15 s. */
-function useAutosave(projectId: string | null) {
+function useAutosave(projectId: string | null, onCreated: (id: string) => void) {
   const dirty = useEditor((s) => s.dirty)
-  const [state, setState] = useState('Saved')
+  const [state, setState] = useState(projectId === DRAFT_ID ? 'Not saved yet' : 'Saved')
   const lastThumb = useRef(0)
   const pending = useRef(false)
+  const creating = useRef(false)
+  // The id can change mid-save when a draft becomes a real project.
+  const idRef = useRef(projectId)
+  // Keep the saved id through the renders where the editor is still catching up to it.
+  if (projectId && !(projectId === DRAFT_ID && idRef.current && idRef.current !== DRAFT_ID)) idRef.current = projectId
   const save = useRef<() => Promise<void>>(async () => {})
+  useEffect(() => {
+    if (projectId === DRAFT_ID) setState('Not saved yet')
+  }, [projectId])
 
   save.current = async () => {
-    if (!projectId) return
-    pending.current = false
+    const id = idRef.current
+    if (!id) return
     const s = useEditor.getState()
+    const printer = s.printerId && s.printerId !== 'guest' ? s.printerId : undefined
+    const material = s.materialId && /^[a-z0-9]{15}$/.test(s.materialId) ? s.materialId : undefined
+    const model = { version: 1 as const, units: 'mm' as const, nodes: s.groupEdit.length ? closedModel(s.nodes, s.groupEdit, contextOf(s).clearances) : s.nodes }
+    if (id === DRAFT_ID) {
+      // A draft is saved, and listed, only once it has something in it.
+      if (!s.nodes.length) {
+        pending.current = false
+        setState('Not saved yet')
+        return
+      }
+      if (creating.current) return
+      creating.current = true
+      pending.current = false
+      setState('Saving…')
+      try {
+        const p = await createProject(s.projectName, printer, material, model)
+        idRef.current = p.id
+        useEditor.setState({ projectId: p.id })
+        window.history.replaceState(null, '', `#/p/${p.id}`)
+        onCreated(p.id)
+        setState('Saved')
+        // Changes made while it was being created, and the first thumbnail.
+        setTimeout(() => save.current(), 0)
+      } catch (e) {
+        console.error(e)
+        pending.current = true
+        setState("Couldn't save. Will retry on the next change.")
+      } finally {
+        creating.current = false
+      }
+      return
+    }
+    pending.current = false
     setState('Saving…')
     try {
       const thumb = Date.now() - lastThumb.current > 15000 ? await captureThumbnail() : null
       if (thumb) lastThumb.current = Date.now()
-      await saveProject(projectId, {
+      await saveProject(id, {
         name: s.projectName,
-        model: { version: 1, units: 'mm', nodes: s.groupEdit.length ? closedModel(s.nodes, s.groupEdit, contextOf(s).clearances) : s.nodes },
-        ...(s.printerId && s.printerId !== 'guest' ? { printer: s.printerId } : {}),
-        ...(s.materialId && /^[a-z0-9]{15}$/.test(s.materialId) ? { material: s.materialId } : {}),
+        model,
+        ...(printer ? { printer } : {}),
+        ...(material ? { material } : {}),
         ...(thumb ? { thumbnail: thumb } : {}),
       })
       setState('Saved')
@@ -211,8 +252,16 @@ export function Editor({ id }: { id: string }) {
   const sectionOn = useSection((s) => s.on)
   const [error, setError] = useState('')
 
+  // A draft becomes a real project on its first save; from then on this editor works on that id.
+  const [current, setCurrent] = useState(id)
+
   useEffect(() => {
     let alive = true
+    if (id === DRAFT_ID) {
+      useEditor.getState().load(DRAFT_ID, 'Untitled part', [])
+      useEditor.setState({ dirty: 0 })
+      return
+    }
     getProject(id)
       .then((p) => {
         if (!alive) return
@@ -232,7 +281,7 @@ export function Editor({ id }: { id: string }) {
 
   useShortcuts()
   useLiveAnalysis()
-  const saveState = useAutosave(projectId === id ? id : null)
+  const saveState = useAutosave(projectId === current ? current : null, setCurrent)
 
   if (error)
     return (
@@ -261,7 +310,7 @@ export function Editor({ id }: { id: string }) {
           useEditor.getState().add(kind, dropTargetAt(e.clientX, e.clientY))
         }}
       >
-        {projectId === id && <Viewport />}
+        {projectId === current && <Viewport />}
         <div className="view-tools" role="toolbar" aria-label="View">
           <button className="btn ghost icon" aria-pressed={tm === 'translate'} onClick={() => setTm('translate')} title="Move handles (V)" style={tm === 'translate' ? { color: 'var(--accent)' } : undefined}><I.move /></button>
           <button className="btn ghost icon" aria-pressed={tm === 'rotate'} onClick={() => setTm('rotate')} title="Rotate handles (R)" style={tm === 'rotate' ? { color: 'var(--accent)' } : undefined}><I.rotate /></button>
@@ -270,7 +319,7 @@ export function Editor({ id }: { id: string }) {
           <button className="btn ghost icon" aria-pressed={measuring} onClick={() => setMeasuring(!measuring)} title="Measure (Q)" style={measuring ? { color: 'var(--accent)' } : undefined}><I.measure /></button>
           <button className="btn ghost icon" aria-pressed={sectionOn} onClick={() => useSection.getState().set({ on: !sectionOn, at: null })} title="Section view: cut the model to see inside" style={sectionOn ? { color: 'var(--accent)' } : undefined}><I.section /></button>
         </div>
-        {projectId === id && nodes.length === 0 && mode !== 'sketch' && (
+        {projectId === current && nodes.length === 0 && mode !== 'sketch' && (
           <div className="empty-hint">
             <b>Start with a shape.</b>
             Press B for a box or pick one on the left. Drop a hole into a solid and press G to cut it.

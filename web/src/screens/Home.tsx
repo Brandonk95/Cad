@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { createProject, deleteProject, listProjects, pb, type ProjectRecord } from '../lib/pb'
-import { go } from '../lib/route'
+import { deleteProject, listProjects, pb, type ProjectRecord } from '../lib/pb'
+import { go, DRAFT_ID } from '../lib/route'
 import { useEditor, usePrintContext } from '../store/editor'
 import { I } from '../ui/Icons'
 import { Wordmark } from '../ui/Logo'
@@ -35,14 +35,8 @@ export function Home({ onSignOut }: { onSignOut: () => void }) {
     listProjects().then(setProjects).catch((e) => setErr(e.message))
   }, [])
 
-  const create = async () => {
-    try {
-      const p = await createProject('Untitled part', useEditor.getState().printerId ?? undefined, useEditor.getState().materialId ?? undefined)
-      go({ name: 'project', id: p.id })
-    } catch (e) {
-      setErr((e as Error).message)
-    }
-  }
+  // Opens a draft. It only shows up in this list once something is added to it.
+  const create = () => go({ name: 'project', id: DRAFT_ID })
 
   return (
     <div className="page">
