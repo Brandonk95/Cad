@@ -22,6 +22,14 @@ export type ShapeKind =
   | 'text'
   /** Rocket nose cone turned around Z, tip up, with an optional shoulder */
   | 'nosecone'
+  /** Rocketry: tube, fins on a sleeve, reducer, tube joiner, motor mount ring, bulkhead with eye, rod guide */
+  | 'bodytube'
+  | 'fincan'
+  | 'transition'
+  | 'coupler'
+  | 'centeringring'
+  | 'bulkhead'
+  | 'launchlug'
 
 export type ScrewSize = 'M2' | 'M2.5' | 'M3' | 'M4' | 'M5' | 'M6' | 'M8'
 export type ScrewType = 'clearance' | 'tapped' | 'insert' | 'nut'
@@ -73,6 +81,31 @@ export interface ShapeParams {
   shoulderRatio?: number
   /** Nose cone hollow wall in mm, open at the bottom (0 = solid) */
   noseWall?: number
+
+  // Rocketry parts. Lengths in mm.
+  /** Body tube wall; for coupler and transition, the wall of the tube they slide into */
+  tubeWall?: number
+  /** Bore: centering ring (motor tube ⌀), launch lug (rod bore), fin can (tube ⌀ it slides over) */
+  innerDia?: number
+  /** Coupler's own wall and the length of its centre band */
+  couplerWall?: number
+  band?: number
+  /** Transition top ⌀, shoulder length at each end, and hollow wall (0 = solid) */
+  topDia?: number
+  shoulderLen?: number
+  transWall?: number
+  /** Bulkhead plate thickness and shock cord eye */
+  plate?: number
+  eyelet?: boolean
+  /** Fin can */
+  finCount?: number
+  finShape?: 'trapezoid' | 'elliptical'
+  finTip?: number
+  finSweep?: number
+  finThick?: number
+  finFillet?: number
+  /** Sleeve wall around the tube (0 = fins only) */
+  finSleeve?: number
 }
 
 export interface ShapeNode {

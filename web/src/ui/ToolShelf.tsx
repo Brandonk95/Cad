@@ -1,4 +1,5 @@
-import { PRINT_PRIMITIVES, SHAPES } from '../model/catalog'
+import { PRINT_PRIMITIVES, ROCKETRY, SHAPES, type ShapeTemplate } from '../model/catalog'
+import type { ShapeKind } from '../model/types'
 import { useEditor } from '../store/editor'
 import { I } from './Icons'
 import { SKETCH_TOOLS, useSketch } from '../sketch/store'
@@ -9,6 +10,17 @@ export const SHAPE_DRAG = 'application/x-stratum-shape'
 const drag = (e: React.DragEvent, kind: string) => {
   e.dataTransfer.setData(SHAPE_DRAG, kind)
   e.dataTransfer.effectAllowed = 'copy'
+}
+
+function ShelfTool({ t, add }: { t: ShapeTemplate; add: (k: ShapeKind) => void }) {
+  const Icon = I[t.kind as 'box']
+  return (
+    <button className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} draggable onDragStart={(e) => drag(e, t.kind)} title={`${t.label}${t.key ? ` (${t.key})` : ''}. Drag onto a face to place it there.`}>
+      <Icon />
+      <span className="label">{t.label}</span>
+      {t.key && <kbd>{t.key}</kbd>}
+    </button>
+  )
 }
 
 export function ToolShelf() {
@@ -42,27 +54,11 @@ export function ToolShelf() {
       ) : (
         <>
       <h3>Shapes</h3>
-      {SHAPES.map((t) => {
-        const Icon = I[t.kind as 'box']
-        return (
-          <button key={t.kind} className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} draggable onDragStart={(e) => drag(e, t.kind)} title={`${t.label} (${t.key}). Drag onto a face to place it there.`}>
-            <Icon />
-            <span className="label">{t.label}</span>
-            <kbd>{t.key}</kbd>
-          </button>
-        )
-      })}
+      {SHAPES.map((t) => <ShelfTool key={t.kind} t={t} add={add} />)}
+      <h3>Rocketry</h3>
+      {ROCKETRY.map((t) => <ShelfTool key={t.kind} t={t} add={add} />)}
       <h3>Print primitives</h3>
-      {PRINT_PRIMITIVES.map((t) => {
-        const Icon = I[t.kind as 'screwHole']
-        return (
-          <button key={t.kind} className="tool" data-tour={`tool-${t.kind}`} onClick={() => add(t.kind)} draggable onDragStart={(e) => drag(e, t.kind)} title={`${t.label} (${t.key}). Drag onto a face to place it there.`}>
-            <Icon />
-            <span className="label">{t.label}</span>
-            <kbd>{t.key}</kbd>
-          </button>
-        )
-      })}
+      {PRINT_PRIMITIVES.map((t) => <ShelfTool key={t.kind} t={t} add={add} />)}
         </>
       )}
       <h3>Build</h3>

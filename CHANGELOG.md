@@ -4,6 +4,18 @@ Newest first. The top section is shown in the in-app "new version" notice, so ke
 each bullet short and written for makers, not developers. Bump the version in the
 heading for every release you want people to notice.
 
+## 0.19.0 — 2026-11-25
+
+- New **Rocketry** section on the tool shelf, with the nose cone and seven new parts for model rockets.
+- **Body tube** (U): set the wall, match a standard tube size (BT-5 to BT-80), or make a motor mount tube for a 13, 18, 24 or 29 mm motor in one click.
+- **Fin can** (I): 3 to 6 fins on a sleeve that slides over the body tube. Choose Clipped delta, Delta, Square or Elliptical fins, set root, span, tip, sweep and thickness, and add root fillets for strength. Set the sleeve wall to 0 for fins only, ready to combine with a tube. Fins print standing on their trailing edges without support.
+- **Transition** (J): joins tubes of two sizes, as a reducer or a boat tail. It has shoulders at both ends and can be solid or hollow; the hollow inside never needs support.
+- **Coupler**: joins two tubes, with a stop band in the middle.
+- **Centering ring**: holds a motor tube in the middle of a body tube. Pick both tubes from the list.
+- **Bulkhead**: closes off a tube, with an eye for the shock cord.
+- **Launch lug** (L): sized for 1/8″, 3/16″ or 1/4″ launch rods.
+- Parts that slide into or over a tube get your snug fit clearance automatically, so they fit the tube sizes you pick. The nose cone can now pick its shoulder from the tube list too.
+
 ## 0.18.0 — 2026-11-24
 
 - New **Nose cone** shape (E) for rocketry. Pick Cone, Ogive, Parabolic, Elliptical or Von Kármán, with a preview of each profile.

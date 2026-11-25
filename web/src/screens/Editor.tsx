@@ -24,7 +24,7 @@ import { useTour } from '../tour/tour'
 import { SKETCH_TOOLS, useSketch } from '../sketch/store'
 import { viewMove } from '../viewport/viewDir'
 
-const KEY_TO_KIND = Object.fromEntries(ALL_TEMPLATES.map((t) => [t.key.toLowerCase(), t.kind]))
+const KEY_TO_KIND = Object.fromEntries(ALL_TEMPLATES.filter((t) => t.key).map((t) => [t.key.toLowerCase(), t.kind]))
 
 function useShortcuts() {
   useEffect(() => {

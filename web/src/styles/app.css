@@ -523,4 +523,8 @@ body.picking canvas { cursor: crosshair !important; }
   font: 500 10px var(--font-sans, inherit); cursor: pointer;
 }
 .nose-shapes button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.nose-shapes.four { grid-template-columns: repeat(4, 1fr); }
+.rk-select { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; color: var(--text-secondary); }
+.rk-select span { flex: 0 0 auto; min-width: 74px; }
+.rk-select select { flex: 1; min-width: 0; }
 .nose-shapes button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

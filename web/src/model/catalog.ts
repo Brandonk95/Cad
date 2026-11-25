@@ -61,8 +61,22 @@ export const SHAPES: ShapeTemplate[] = [
   { kind: 'sphere', label: 'Sphere', key: 'O', make: () => ({ type: 'shape', kind: 'sphere', name: 'Sphere', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: {} }) },
   { kind: 'cone', label: 'Cone', key: 'K', make: () => ({ type: 'shape', kind: 'cone', name: 'Cone', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: { segments: 64, topRatio: 0 } }) },
   { kind: 'wedge', label: 'Wedge', key: 'W', make: () => ({ type: 'shape', kind: 'wedge', name: 'Wedge', rotation: [0, 0, 0], size: [20, 20, 20], hole: false, color: SOLID, params: {} }) },
-  { kind: 'nosecone', label: 'Nose cone', key: 'E', make: () => ({ type: 'shape', kind: 'nosecone', name: 'Nose cone', rotation: [0, 0, 0], size: [30, 30, 90], hole: false, color: SOLID, params: { segments: 64, noseShape: 'ogive', shoulder: 0.2, shoulderRatio: 0.93, noseWall: 0 } }) },
   { kind: 'text', label: 'Text', key: 'T', make: () => ({ type: 'shape', kind: 'text', name: 'Text', rotation: [0, 0, 0], size: [round1(textAspect('Text') * 10), 10, 2], hole: false, color: SOLID, params: { text: 'Text' } }) },
+]
+
+const rocket = (kind: ShapeKind, name: string, size: Vec3, params: ShapeNode['params']) => (): Omit<ShapeNode, 'id' | 'position'> =>
+  ({ type: 'shape', kind, name, rotation: [0, 0, 0], size, hole: false, color: SOLID, params: { segments: 96, ...params } })
+
+/** Model rocket parts. Defaults fit a 41.6 mm (BT-60 size) rocket with an 18 mm motor. */
+export const ROCKETRY: ShapeTemplate[] = [
+  { kind: 'nosecone', label: 'Nose cone', key: 'E', make: rocket('nosecone', 'Nose cone', [41.6, 41.6, 110], { noseShape: 'ogive', shoulder: 0.2, shoulderRatio: 0.95, noseWall: 0 }) },
+  { kind: 'bodytube', label: 'Body tube', key: 'U', make: rocket('bodytube', 'Body tube', [41.6, 41.6, 150], { tubeWall: 1.2 }) },
+  { kind: 'fincan', label: 'Fin can', key: 'I', make: rocket('fincan', 'Fin can', [125, 125, 60], { finCount: 3, finShape: 'trapezoid', finTip: 25, finSweep: 35, finThick: 3, finFillet: 2, innerDia: 41.6, finSleeve: 1.6 }) },
+  { kind: 'transition', label: 'Transition', key: 'J', make: rocket('transition', 'Transition', [41.6, 41.6, 50], { topDia: 24.8, shoulderLen: 12, tubeWall: 1.2, transWall: 0 }) },
+  { kind: 'coupler', label: 'Coupler', key: '', make: rocket('coupler', 'Coupler', [41.6, 41.6, 50], { tubeWall: 1.2, couplerWall: 1.6, band: 4 }) },
+  { kind: 'centeringring', label: 'Centering ring', key: '', make: rocket('centeringring', 'Centering ring', [40.5, 40.5, 3], { innerDia: 18.7 }) },
+  { kind: 'bulkhead', label: 'Bulkhead', key: '', make: rocket('bulkhead', 'Bulkhead', [40.5, 40.5, 12], { plate: 3, eyelet: true }) },
+  { kind: 'launchlug', label: 'Launch lug', key: 'L', make: rocket('launchlug', 'Launch lug', [5.7, 5.7, 40], { innerDia: 3.7, segments: 48 }) },
 ]
 
 export const PRINT_PRIMITIVES: ShapeTemplate[] = [
@@ -80,7 +94,7 @@ export const PRINT_PRIMITIVES: ShapeTemplate[] = [
   },
 ]
 
-export const ALL_TEMPLATES = [...SHAPES, ...PRINT_PRIMITIVES]
+export const ALL_TEMPLATES = [...SHAPES, ...ROCKETRY, ...PRINT_PRIMITIVES]
 
 export const FILAMENT_COLORS = ['#C9CED6', '#F4F5F7', '#2B2E34', '#E8C547', '#D9534F', '#4A90D9', '#5CB85C', '#9B59B6', '#E67E22', '#8B5A2B']
 

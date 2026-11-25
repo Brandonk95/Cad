@@ -4,6 +4,7 @@ import { SCREWS } from './catalog'
 import { detailedGeometry } from './details'
 import { unitTextGeometry } from './text'
 import { noseGeometry } from './nosecone'
+import { rocketGeometry } from './rocketry'
 import type { Clearances, GroupNode, SceneNode, ShapeNode, Vec3 } from './types'
 
 const DEG = Math.PI / 180
@@ -107,6 +108,9 @@ export function buildShapeGeometries(n: ShapeNode, clr: Clearances, parentQuat =
     g.scale(sx, sy, sz)
     g.rotateZ(Math.atan2(up.y, up.x) - Math.PI / 2)
   } else {
+    // Rocket parts are built at full size; fits shrink or grow by the snug clearance.
+    const rocket = rocketGeometry(n, sx, sy, sz, clr.snug)
+    if (rocket) return [clean(rocket)]
     const detailed = detailedGeometry(n, sx, sy, sz)
     if (detailed) return [clean(detailed)]
     switch (n.kind) {

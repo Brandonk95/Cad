@@ -10,9 +10,11 @@ import { viewAxes, viewMove } from '../viewport/viewDir'
 import { FIT_CLASSES, wallMin, type Clearances, type FitClass, type SceneNode, type ShapeNode, type Vec3 } from '../model/types'
 import { beginScrub, endScrub, useEditor, usePrintContext } from '../store/editor'
 import { I } from './Icons'
+import { NoseTubeFit, RocketFields } from './RocketFields'
+import { ROCKET_KINDS } from '../model/rocketry'
 
 /** Position that keeps a part's bottom where it was after a size change, so it doesn't sink or float. */
-const keepBottom = (before: ShapeNode, after: ShapeNode, clr: Clearances): Vec3 => {
+export const keepBottom = (before: ShapeNode, after: ShapeNode, clr: Clearances): Vec3 => {
   const dz = solidWorldBox(before, clr).min.z - solidWorldBox(after, clr).min.z
   return [before.position[0], before.position[1], Math.round((before.position[2] + dz) * 1000) / 1000]
 }
@@ -22,7 +24,7 @@ const fmt = (v: number) => (Math.round(v * 1000) / 1000).toString()
 /** Pixels of drag per step. Shift: 10 steps, Alt: a tenth of a step. */
 const PX_PER_STEP = 4
 
-function Num({ label, value, onChange, unit = 'mm', step = 1, scrub = true }: { label: string; value: number; onChange: (v: number) => void; unit?: string; step?: number; scrub?: boolean }) {
+export function Num({ label, value, onChange, unit = 'mm', step = 1, scrub = true }: { label: string; value: number; onChange: (v: number) => void; unit?: string; step?: number; scrub?: boolean }) {
   const [text, setText] = useState(fmt(value))
   const [dragging, setDragging] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -164,6 +166,7 @@ function NoseFields({ n }: { n: ShapeNode }) {
       </div>
       {info && <p className="note">{info.hint}</p>}
       <h4>Shoulder</h4>
+      <NoseTubeFit n={n} />
       <div className="dims two">
         <Num label="Length" value={r2((p.shoulder ?? 0) * H)} onChange={(v) => setP({ shoulder: Math.min(0.9, Math.max(0, v / H)) }, 'Shoulder length')} />
         <Num label="⌀" value={r2((p.shoulderRatio ?? 0.93) * D)} onChange={(v) => setP({ shoulderRatio: Math.min(1, Math.max(0.2, v / D)) }, 'Shoulder size')} />
@@ -223,6 +226,7 @@ function ShapeFields({ n }: { n: ShapeNode }) {
 
       {n.kind === 'text' && <TextField n={n} />}
       {n.kind === 'nosecone' && <NoseFields n={n} />}
+      <RocketFields n={n} />
 
       {n.kind === 'screwHole' && (
         <div className="section">
@@ -268,7 +272,7 @@ function ShapeFields({ n }: { n: ShapeNode }) {
 
       <div className="section">
         <h4>Size</h4>
-        <Vec v={n.size} min={0.05} onChange={(size) => set({ size, position: keepBottom(n, { ...n, size }, ctx.clearances) }, 'Resize')} labels={n.kind === 'cylinder' || n.kind === 'pin' || n.kind === 'nosecone' ? ['⌀X', '⌀Y', 'H'] : ['W', 'D', 'H']} />
+        <Vec v={n.size} min={0.05} onChange={(size) => set({ size, position: keepBottom(n, { ...n, size }, ctx.clearances) }, 'Resize')} labels={n.kind === 'cylinder' || n.kind === 'pin' || ROCKET_KINDS.includes(n.kind) ? ['⌀X', '⌀Y', 'H'] : ['W', 'D', 'H']} />
       </div>
 
       {n.hole && (
@@ -792,7 +796,7 @@ export function Inspector() {
               }} />
             </div>
             <div className="row">
-              {n.type === 'group' ? <span className="chip"><I.group size={14} /> {n.children.length} shapes combined</span> : <span className="chip">{n.kind === 'screwHole' || n.kind === 'magnetPocket' || n.kind === 'pin' ? 'Print primitive' : n.kind === 'extrude' ? 'Sketch' : n.kind === 'text' ? 'Text' : n.kind === 'nosecone' ? 'Rocketry' : 'Shape'}</span>}
+              {n.type === 'group' ? <span className="chip"><I.group size={14} /> {n.children.length} shapes combined</span> : <span className="chip">{n.kind === 'screwHole' || n.kind === 'magnetPocket' || n.kind === 'pin' ? 'Print primitive' : n.kind === 'extrude' ? 'Sketch' : n.kind === 'text' ? 'Text' : ROCKET_KINDS.includes(n.kind) ? 'Rocketry' : 'Shape'}</span>}
             </div>
             {n.type === 'shape' && <ShapeFields n={n} />}
             {n.type === 'group' && (
